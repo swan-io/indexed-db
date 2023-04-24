@@ -38,8 +38,9 @@
     "format": "prettier '**/*' -u -w",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --ext ts ./src",
-    "test": "echo \"no test specified, skipping…\"",
-    "test:watch": "yarn test",
+    "test:install-deps": "playwright install-deps chromium firefox webkit",
+    "test": "playwright test",
+    "test:ci": "CI=true playwright test",
     "prepack": "yarn typecheck && yarn lint && yarn test && yarn build"
   },
   "browserslist": [
@@ -51,10 +52,12 @@
     "trailingComma": "all"
   },
   "devDependencies": {
+    "@playwright/test": "^1.32.3",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
     "eslint": "^8.39.0",
     "microbundle": "^0.15.1",
+    "playwright": "^1.32.3",
     "prettier": "^2.8.8",
     "prettier-plugin-organize-imports": "^3.2.2",
     "typescript": "^5.0.4"
