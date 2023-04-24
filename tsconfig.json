@@ -1,0 +1,29 @@
+{
+  "include": ["src"],
+  "compilerOptions": {
+    "module": "ES2015",
+    "target": "ES2015",
+    "lib": ["DOM", "DOM.Iterable", "ES2015"],
+    "outDir": "dist/",
+    "moduleResolution": "Node",
+
+    "allowJs": false,
+    "declaration": true,
+    "noEmit": true,
+    "sourceMap": true,
+    "strict": true,
+    "stripInternal": true,
+
+    // https://www.typescriptlang.org/tsconfig#Type_Checking_6248
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  }
+}
