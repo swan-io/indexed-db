@@ -46,7 +46,8 @@
   "browserslist": [
     ">0.2%",
     "not op_mini all",
-    "not dead"
+    "not dead",
+    "safari >= 12"
   ],
   "prettier": {
     "trailingComma": "all"
