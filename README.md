@@ -1,1 +1,1 @@
-# indexed-db
+# @swan-io/indexed-db
