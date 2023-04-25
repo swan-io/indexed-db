@@ -1,4 +1,4 @@
-import { iosVersion } from "./userAgent";
+import { iOSVersion } from "./userAgent";
 
 export const rewriteError = (error: DOMException | null): Error => {
   if (error == null) {
@@ -6,7 +6,7 @@ export const rewriteError = (error: DOMException | null): Error => {
   }
 
   // https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L915
-  if (iosVersion.get() >= 12.2 && iosVersion.get() < 13) {
+  if (iOSVersion.get() >= 12.2 && iOSVersion.get() < 13) {
     const IOS_ERROR =
       "An internal error was encountered in the Indexed Database server";
 
