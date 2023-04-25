@@ -1,4 +1,4 @@
-import { Future, Result } from "@swan-io/boxed";
+import { Future, Option, Result } from "@swan-io/boxed";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
 
@@ -16,10 +16,8 @@ const openDatabase = (
 };
 
 export const openStore = (databaseName: string, storeName: string) => {
-  // All methods should fallback to inMemoryStore and fail only if the data doesn't exist in the store
-  // const inMemoryStore = new Map<string, unknown>();
-
   const databaseFuture = retry(() => openDatabase(databaseName, storeName));
+  const inMemoryStore = new Map<string, Option<unknown>>();
 
   const getObjectStore = (
     transactionMode: IDBTransactionMode,
@@ -34,17 +32,36 @@ export const openStore = (databaseName: string, storeName: string) => {
         getObjectStore("readonly").flatMapOk((store) =>
           futurifyRequest("getMany", store.getAll(keys)),
         ),
-      ),
+      )
+        .tapOk((values) => {
+          keys.forEach((key, index) => {
+            inMemoryStore.set(key, Option.Some(values[index]));
+          });
+        })
+        .flatMapError((error) =>
+          Future.value(
+            Option.all(
+              keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
+            ).toResult(error),
+          ),
+        ),
 
     setMany: (
-      entries: [key: string, value: unknown][],
-    ): Future<Result<undefined, Error>> =>
-      retry(() =>
+      object: Record<string, unknown>,
+    ): Future<Result<undefined, Error>> => {
+      const entries = Object.entries(object);
+
+      entries.forEach(([key, value]) => {
+        inMemoryStore.set(key, Option.Some(value));
+      });
+
+      return retry(() =>
         getObjectStore("readwrite").flatMapOk((store) => {
-          entries.forEach((entry) => store.put(entry[1], entry[0]));
+          entries.forEach(([key, value]) => store.put(value, key));
           return futurifyTransaction("setMany", store.transaction);
         }),
-      ),
+      );
+    },
 
     clear: (): Future<Result<undefined, Error>> =>
       retry(() =>
@@ -52,6 +69,8 @@ export const openStore = (databaseName: string, storeName: string) => {
           store.clear();
           return futurifyTransaction("clear", store.transaction);
         }),
-      ),
+      ).tapOk(() => {
+        inMemoryStore.clear();
+      }),
   };
 };
