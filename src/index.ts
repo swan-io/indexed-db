@@ -2,7 +2,7 @@ import { Future, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
-import { isSafari } from "./safari";
+import { isSafari } from "./userAgent";
 
 const openDatabase = (
   databaseName: string,
