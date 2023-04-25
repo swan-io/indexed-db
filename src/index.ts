@@ -79,43 +79,6 @@ const futurifyTransaction = (
  *
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-const waitForSafari = (): Future<Result<true, Error>> => {
-  const isSafari =
-    navigator.userAgentData != null &&
-    /Safari\//.test(navigator.userAgent) &&
-    !/Chrom(e|ium)\//.test(navigator.userAgent);
-
-  // No point putting other browsers or older versions of Safari through this mess.
-  if (!isSafari || !("databases" in indexedDB)) {
-    return Future.value(Result.Ok(true));
-  }
-
-  let intervalId: NodeJS.Timer;
-  let remainingAttempts = 10;
-
-  return Future.make((resolve) => {
-    const execAttempt = () => {
-      remainingAttempts = remainingAttempts - 1;
-
-      if (remainingAttempts === 0) {
-        clearInterval(intervalId);
-
-        return resolve(
-          Result.Error(new Error("indexedDB databases listing failed")),
-        );
-      }
-
-      indexedDB
-        .databases()
-        .then(() => resolve(Result.Ok(true)))
-        .catch((error) => resolve(Result.Error(error)))
-        .finally(() => clearInterval(intervalId));
-    };
-
-    intervalId = setInterval(execAttempt, 100);
-    execAttempt();
-  });
-};
 
 // Add a Promise.race like to abort open if it's stuck (add a setTimeout)
 const openDatabase = (
@@ -137,24 +100,17 @@ const openDatabase = (
 
     if (isSafari.get()) {
       // Safari has a horrible bug where IDB requests can hang forever
-      // We reject this promise after 100ms if this seems to happen
+      // We reject this promise after 200ms if this seems to happen
       // @see https://bugs.webkit.org/show_bug.cgi?id=226547
       setTimeout(() => {
-        resolve(
-          Result.Error(
-            new Error(`Couldn't open ${databaseName} IndexedDB database`),
-          ),
-        );
-      }, 100);
+        const message = `Couldn't open ${databaseName} IndexedDB database`;
+        resolve(Result.Error(new Error(message)));
+      }, 200);
     }
   });
 
 export const openStore = (databaseName: string, storeName: string) => {
-  const x = waitForSafari().flatMapOk(() =>
-    retry(() => openDatabase(databaseName, storeName)),
-  );
-
-  const databaseFuture = retry(() => openDatabase(databaseName, storeName)); // TODO: 10 times might be A LOT
+  const databaseFuture = retry(() => openDatabase(databaseName, storeName));
   const inMemoryStore = new Map<string, unknown>();
 
   // All methods should fallback to inMemoryStore and fail only if the data doesn't exist in the store

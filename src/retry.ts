@@ -2,7 +2,7 @@ import { Future, Result } from "@swan-io/boxed";
 
 export const retry = <A, E>(
   getFuture: () => Future<Result<A, E>>,
-  maxAttempts = 3,
+  maxAttempts = 5,
 ): Future<Result<A, E>> => {
   const safeMaxAttempts = Math.max(maxAttempts, 1);
 
