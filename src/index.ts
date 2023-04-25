@@ -1,5 +1,5 @@
 import { Future, Result } from "@swan-io/boxed";
-import { transformError } from "./errors";
+import { rewriteError } from "./errors";
 import { retry } from "./retry";
 import { isSafari } from "./safari";
 
@@ -17,7 +17,7 @@ const openDatabase = (
       resolve(Result.Ok(request.result));
     };
     request.onerror = () => {
-      resolve(Result.Error(transformError(request.error)));
+      resolve(Result.Error(rewriteError(request.error)));
     };
 
     if (isSafari.get()) {
@@ -39,7 +39,7 @@ const futurifyRequest = <T>(request: IDBRequest<T>): Future<Result<T, Error>> =>
       resolve(Result.Ok(request.result));
     };
     request.onerror = () => {
-      resolve(Result.Error(transformError(request.error)));
+      resolve(Result.Error(rewriteError(request.error)));
     };
   });
 
@@ -51,10 +51,10 @@ const futurifyTransaction = (
       resolve(Result.Ok(undefined));
     };
     transaction.onabort = () => {
-      resolve(Result.Error(transformError(transaction.error)));
+      resolve(Result.Error(rewriteError(transaction.error)));
     };
     transaction.onerror = () => {
-      resolve(Result.Error(transformError(transaction.error)));
+      resolve(Result.Error(rewriteError(transaction.error)));
     };
   });
 

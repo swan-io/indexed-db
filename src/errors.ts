@@ -1,6 +1,6 @@
 import { iosVersion } from "./safari";
 
-export const transformError = (error: DOMException | null): Error => {
+export const rewriteError = (error: DOMException | null): Error => {
   if (error == null) {
     return new Error("Unknown IndexedDB error");
   }
