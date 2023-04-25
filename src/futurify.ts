@@ -7,7 +7,7 @@ export const futurifyRequest = <T>(
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
     const timeoutId = setTimeout(() => {
-      const error = new Error(`IndexedDB ${name} timed out`);
+      const error = new Error(`IndexedDB ${name} request timed out`);
       resolve(Result.Error(error));
     }, 200);
 
@@ -27,7 +27,7 @@ export const futurifyTransaction = (
 ): Future<Result<undefined, Error>> =>
   Future.make((resolve) => {
     const timeoutId = setTimeout(() => {
-      const error = new Error(`IndexedDB ${name} timed out`);
+      const error = new Error(`IndexedDB ${name} transaction timed out`);
       resolve(Result.Error(error));
     }, 200);
 
