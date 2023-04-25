@@ -1,4 +1,4 @@
-import { Future, Option, Result } from "@swan-io/boxed";
+import { Dict, Future, Option, Result } from "@swan-io/boxed";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
 
@@ -47,7 +47,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         ),
 
     setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
-      const entries = Object.entries(object);
+      const entries = Dict.entries(object);
 
       entries.forEach(([key, value]) => {
         inMemoryStore.set(key, Option.Some(value));
