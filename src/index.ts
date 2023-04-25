@@ -1,14 +1,6 @@
 import { Future, Lazy, Result } from "@swan-io/boxed";
 import { retry } from "./retry";
 
-// https://github.com/jakearchibald/safari-14-idb-fix/blob/v3.0.0/src/index.ts#L7
-const isSafari = Lazy(
-  () =>
-    navigator.userAgentData != null &&
-    /Safari\//.test(navigator.userAgent) &&
-    !/Chrom(e|ium)\//.test(navigator.userAgent),
-);
-
 const iOSVersion = Lazy(() => {
   const versionMatch = navigator.userAgent.match(
     /i(?:phone|pad|pod) os ([\d_]+)/i,
@@ -71,16 +63,14 @@ const futurifyTransaction = (
     };
   });
 
-/**
- * Work around Safari 14 IndexedDB open bug.
- *
- * Safari has a horrible bug where IDB requests can hang while the browser is starting up. https://bugs.webkit.org/show_bug.cgi?id=226547
- * The only solution is to keep nudging it until it's awake.
- *
- * @see https://github.com/jakearchibald/safari-14-idb-fix
- */
+// https://github.com/jakearchibald/safari-14-idb-fix/blob/v3.0.0/src/index.ts#L7
+const isSafari = Lazy(
+  () =>
+    navigator.userAgentData != null &&
+    /Safari\//.test(navigator.userAgent) &&
+    !/Chrom(e|ium)\//.test(navigator.userAgent),
+);
 
-// Add a Promise.race like to abort open if it's stuck (add a setTimeout)
 const openDatabase = (
   databaseName: string,
   storeName: string,
@@ -99,9 +89,11 @@ const openDatabase = (
     };
 
     if (isSafari.get()) {
-      // Safari has a horrible bug where IDB requests can hang forever
-      // We reject this promise after 200ms if this seems to happen
-      // @see https://bugs.webkit.org/show_bug.cgi?id=226547
+      /**
+       * Safari has a horrible bug where IDB requests can hang forever.
+       * We resolve this future with error after 200ms if it seems to happen.
+       * @see https://bugs.webkit.org/show_bug.cgi?id=226547
+       */
       setTimeout(() => {
         const message = `Couldn't open ${databaseName} IndexedDB database`;
         resolve(Result.Error(new Error(message)));
@@ -111,7 +103,7 @@ const openDatabase = (
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = retry(() => openDatabase(databaseName, storeName));
-  const inMemoryStore = new Map<string, unknown>();
+  // const inMemoryStore = new Map<string, unknown>();
 
   // All methods should fallback to inMemoryStore and fail only if the data doesn't exist in the store
   const getStore = (
