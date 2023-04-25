@@ -1,75 +1,7 @@
-import { Future, Lazy, Result } from "@swan-io/boxed";
+import { Future, Result } from "@swan-io/boxed";
+import { transformError } from "./errors";
 import { retry } from "./retry";
-
-const iOSVersion = Lazy(() => {
-  const versionMatch = navigator.userAgent.match(
-    /i(?:phone|pad|pod) os ([\d_]+)/i,
-  )?.[1];
-
-  return versionMatch != null
-    ? Number(versionMatch.split("_").slice(0, 2).join("."))
-    : -1;
-});
-
-const transformError = (error: DOMException | null): Error => {
-  if (error == null) {
-    return new Error("Unknown IndexedDB error");
-  }
-
-  if (iOSVersion.get() >= 12.2 && iOSVersion.get() < 13) {
-    const IOS_ERROR =
-      "An internal error was encountered in the Indexed Database server";
-
-    if (error.message.indexOf(IOS_ERROR) >= 0) {
-      // https://bugs.webkit.org/show_bug.cgi?id=197050
-      return new Error(
-        `IndexedDB has thrown '${IOS_ERROR}'. This is likely ` +
-          `due to an unavoidable bug in iOS. See https://stackoverflow.com/q/56496296/110915 ` +
-          `for details and a potential workaround.`,
-      );
-    }
-  }
-
-  return error;
-};
-
-/**
- * Wraps an IDBRequest in a Future, using the onsuccess / onerror handlers
- * to resolve the Future as appropriate.
- * @see https://github.com/firebase/firebase-js-sdk/blob/master/packages/firestore/src/local/simple_db.ts#L895
- */
-const futurifyRequest = <T>(request: IDBRequest<T>): Future<Result<T, Error>> =>
-  Future.make((resolve) => {
-    request.onsuccess = () => {
-      resolve(Result.Ok(request.result));
-    };
-    request.onerror = () => {
-      resolve(Result.Error(transformError(request.error)));
-    };
-  });
-
-const futurifyTransaction = (
-  transaction: IDBTransaction,
-): Future<Result<undefined, Error>> =>
-  Future.make((resolve) => {
-    transaction.oncomplete = () => {
-      resolve(Result.Ok(undefined));
-    };
-    transaction.onabort = () => {
-      resolve(Result.Error(transformError(transaction.error)));
-    };
-    transaction.onerror = () => {
-      resolve(Result.Error(transformError(transaction.error)));
-    };
-  });
-
-// https://github.com/jakearchibald/safari-14-idb-fix/blob/v3.0.0/src/index.ts#L7
-const isSafari = Lazy(
-  () =>
-    navigator.userAgentData != null &&
-    /Safari\//.test(navigator.userAgent) &&
-    !/Chrom(e|ium)\//.test(navigator.userAgent),
-);
+import { isSafari } from "./safari";
 
 const openDatabase = (
   databaseName: string,
@@ -95,10 +27,35 @@ const openDatabase = (
        * @see https://bugs.webkit.org/show_bug.cgi?id=226547
        */
       setTimeout(() => {
-        const message = `Couldn't open ${databaseName} IndexedDB database`;
-        resolve(Result.Error(new Error(message)));
+        const ERROR = `Couldn't open ${databaseName} IndexedDB database`;
+        resolve(Result.Error(new Error(ERROR)));
       }, 200);
     }
+  });
+
+const futurifyRequest = <T>(request: IDBRequest<T>): Future<Result<T, Error>> =>
+  Future.make((resolve) => {
+    request.onsuccess = () => {
+      resolve(Result.Ok(request.result));
+    };
+    request.onerror = () => {
+      resolve(Result.Error(transformError(request.error)));
+    };
+  });
+
+const futurifyTransaction = (
+  transaction: IDBTransaction,
+): Future<Result<undefined, Error>> =>
+  Future.make((resolve) => {
+    transaction.oncomplete = () => {
+      resolve(Result.Ok(undefined));
+    };
+    transaction.onabort = () => {
+      resolve(Result.Error(transformError(transaction.error)));
+    };
+    transaction.onerror = () => {
+      resolve(Result.Error(transformError(transaction.error)));
+    };
   });
 
 export const openStore = (databaseName: string, storeName: string) => {
