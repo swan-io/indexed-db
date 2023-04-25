@@ -46,9 +46,7 @@ export const openStore = (databaseName: string, storeName: string) => {
           ),
         ),
 
-    setMany: (
-      object: Record<string, unknown>,
-    ): Future<Result<undefined, Error>> => {
+    setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
       const entries = Object.entries(object);
 
       entries.forEach(([key, value]) => {
@@ -63,7 +61,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       );
     },
 
-    clear: (): Future<Result<undefined, Error>> =>
+    clear: (): Future<Result<void, Error>> =>
       retry(() =>
         getObjectStore("readwrite").flatMapOk((store) => {
           store.clear();

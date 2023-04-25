@@ -24,7 +24,7 @@ export const futurifyRequest = <T>(
 export const futurifyTransaction = (
   name: string,
   transaction: IDBTransaction,
-): Future<Result<undefined, Error>> =>
+): Future<Result<void, Error>> =>
   Future.make((resolve) => {
     const timeoutId = setTimeout(() => {
       const error = new Error(`IndexedDB ${name} transaction timed out`);
@@ -33,7 +33,7 @@ export const futurifyTransaction = (
 
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
-      resolve(Result.Ok(undefined));
+      resolve(Result.Ok(void 0));
     };
     transaction.onabort = () => {
       clearTimeout(timeoutId);
