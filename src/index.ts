@@ -51,9 +51,7 @@ export const openStore = (databaseName: string, storeName: string) => {
     getMany: (keys: string[]): Future<Result<unknown[], Error>> =>
       retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
-          Future.all(keys.map((key) => futurifyRequest(store.get(key)))).map(
-            (futures) => Result.all(futures),
-          ),
+          futurifyRequest(store.getAll(keys)),
         ),
       ),
 
