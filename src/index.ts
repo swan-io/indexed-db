@@ -35,11 +35,12 @@ const openDatabase = (
   });
 
 export const openStore = (databaseName: string, storeName: string) => {
-  const databaseFuture = retry(() => openDatabase(databaseName, storeName));
+  // All methods should fallback to inMemoryStore and fail only if the data doesn't exist in the store
   // const inMemoryStore = new Map<string, unknown>();
 
-  // All methods should fallback to inMemoryStore and fail only if the data doesn't exist in the store
-  const getStore = (
+  const databaseFuture = retry(() => openDatabase(databaseName, storeName));
+
+  const getObjectStore = (
     transactionMode: IDBTransactionMode,
   ): Future<Result<IDBObjectStore, Error>> =>
     databaseFuture.mapOk((database) =>
@@ -48,24 +49,30 @@ export const openStore = (databaseName: string, storeName: string) => {
 
   return {
     getMany: (keys: string[]): Future<Result<unknown[], Error>> =>
-      getStore("readonly").flatMapOk((store) =>
-        Future.all(keys.map((key) => futurifyRequest(store.get(key)))).map(
-          (futures) => Result.all(futures),
+      retry(() =>
+        getObjectStore("readonly").flatMapOk((store) =>
+          Future.all(keys.map((key) => futurifyRequest(store.get(key)))).map(
+            (futures) => Result.all(futures),
+          ),
         ),
       ),
 
     setMany: (
       entries: [key: string, value: unknown][],
     ): Future<Result<undefined, Error>> =>
-      getStore("readwrite").flatMapOk((store) => {
-        entries.forEach((entry) => store.put(entry[1], entry[0]));
-        return futurifyTransaction(store.transaction);
-      }),
+      retry(() =>
+        getObjectStore("readwrite").flatMapOk((store) => {
+          entries.forEach((entry) => store.put(entry[1], entry[0]));
+          return futurifyTransaction(store.transaction);
+        }),
+      ),
 
     clear: (): Future<Result<undefined, Error>> =>
-      getStore("readwrite").flatMapOk((store) => {
-        store.clear();
-        return futurifyTransaction(store.transaction);
-      }),
+      retry(() =>
+        getObjectStore("readwrite").flatMapOk((store) => {
+          store.clear();
+          return futurifyTransaction(store.transaction);
+        }),
+      ),
   };
 };
