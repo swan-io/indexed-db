@@ -27,7 +27,9 @@ export const openStore = (databaseName: string, storeName: string) => {
     );
 
   return {
-    getMany: (keys: string[]): Future<Result<unknown[], Error>> =>
+    getMany: <T extends string>(
+      keys: T[],
+    ): Future<Result<Record<T, unknown>, Error>> =>
       retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
           futurifyRequest("getMany", store.getAll(keys)),
@@ -44,6 +46,12 @@ export const openStore = (databaseName: string, storeName: string) => {
               keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
             ).toResult(error),
           ),
+        )
+        .mapOk((values) =>
+          keys.reduce((object, key, index) => {
+            object[key] = values[index] as unknown;
+            return object;
+          }, {} as Record<T, unknown>),
         ),
 
     setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
