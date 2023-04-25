@@ -12,6 +12,7 @@
     "noEmit": true,
     "sourceMap": true,
     "strict": true,
+    "skipLibCheck": true,
     "stripInternal": true,
 
     // https://www.typescriptlang.org/tsconfig#Type_Checking_6248
