@@ -28,8 +28,8 @@ const openDatabase = (
        * @see https://bugs.webkit.org/show_bug.cgi?id=226547
        */
       setTimeout(() => {
-        const ERROR = `Couldn't open ${databaseName} IndexedDB database`;
-        resolve(Result.Error(new Error(ERROR)));
+        const message = `Couldn't open ${databaseName} IndexedDB database`;
+        resolve(Result.Error(new Error(message)));
       }, 200);
     }
   });
