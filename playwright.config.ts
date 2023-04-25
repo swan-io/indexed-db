@@ -5,6 +5,7 @@ const CI = process.env.CI === String(true);
 const config: PlaywrightTestConfig = {
   forbidOnly: CI,
   reporter: [["line"], ["html"]],
+  testDir: "./tests/e2e",
 
   projects: [
     {

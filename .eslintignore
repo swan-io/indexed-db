@@ -1,4 +1,5 @@
-__tests__/
+.eslintrc.js
 dist/
 playwright.config.ts
-.eslintrc.js
+tests/
+vite.config.ts
