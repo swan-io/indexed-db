@@ -31,9 +31,11 @@ export const openStore = (databaseName: string, storeName: string) => {
   const getObjectStore = (
     transactionMode: IDBTransactionMode,
   ): Future<Result<IDBObjectStore, Error>> =>
-    databaseFuture.mapOk((database) =>
-      database.transaction(storeName, transactionMode).objectStore(storeName),
-    );
+    databaseFuture.mapOk((database) => {
+      return database
+        .transaction(storeName, transactionMode)
+        .objectStore(storeName);
+    }, false);
 
   return {
     getMany: <T extends string>(
@@ -42,7 +44,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       retry(() =>
         getObjectStore("readonly").flatMapOk((store) => {
           return futurifyRequest("getMany", store.getAll(keys));
-        }),
+        }, true),
       )
         .tapOk((values) => {
           keys.forEach((key, index) => {
@@ -55,13 +57,13 @@ export const openStore = (databaseName: string, storeName: string) => {
               keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
             ).toResult(error),
           );
-        })
+        }, true)
         .mapOk((values) => {
           return keys.reduce((object, key, index) => {
             object[key] = values[index] as unknown;
             return object;
           }, {} as Record<T, unknown>);
-        }),
+        }, true),
 
     setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
       const entries = Dict.entries(object);
@@ -74,7 +76,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         getObjectStore("readwrite").flatMapOk((store) => {
           entries.forEach(([key, value]) => store.put(value, key));
           return futurifyTransaction("setMany", store.transaction);
-        }),
+        }, true),
       );
     },
 
@@ -83,7 +85,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         getObjectStore("readwrite").flatMapOk((store) => {
           store.clear();
           return futurifyTransaction("clear", store.transaction);
-        }),
+        }, true),
       ).tapOk(() => {
         inMemoryStore.clear();
       }),
