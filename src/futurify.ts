@@ -1,9 +1,6 @@
 import { Future, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 
-const getTimeoutError = (operationName: string) =>
-  new Error(`IndexedDB ${operationName} call timed out`);
-
 export const futurifyRequest = <T>(
   operationName: string,
   request: IDBRequest<T>,
@@ -34,7 +31,8 @@ export const futurifyRequest = <T>(
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
-        resolve(Result.Error(getTimeoutError(operationName)));
+        const message = `IndexedDB ${operationName} call timed out`;
+        resolve(Result.Error(new Error(message)));
       };
     }
 
@@ -67,7 +65,8 @@ export const futurifyTransaction = (
     };
     transaction.onabort = () => {
       clearTimeout(timeoutId);
-      resolve(Result.Error(getTimeoutError(operationName)));
+      const message = `IndexedDB ${operationName} call timed out`;
+      resolve(Result.Error(new Error(message)));
     };
 
     return abort;
