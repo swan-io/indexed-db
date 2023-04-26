@@ -1,5 +1,4 @@
 import { Dict, Future, Option, Result } from "@swan-io/boxed";
-import { rewriteError } from "./errors";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
 import { indexedDBReady } from "./safari";
@@ -8,21 +7,15 @@ const openDatabase = (
   databaseName: string,
   storeName: string,
 ): Future<Result<IDBDatabase, Error>> =>
-  indexedDBReady().flatMapOk(() =>
-    Future.make((resolve) => {
-      const request = indexedDB.open(databaseName);
+  indexedDBReady().flatMapOk(() => {
+    const request = indexedDB.open(databaseName);
 
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(storeName);
-      };
-      request.onsuccess = () => {
-        resolve(Result.Ok(request.result));
-      };
-      request.onerror = () => {
-        resolve(Result.Error(rewriteError(request.error)));
-      };
-    }),
-  );
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(storeName);
+    };
+
+    return futurifyRequest("openDatabase", request);
+  });
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = openDatabase(databaseName, storeName);
