@@ -27,7 +27,7 @@ export const futurifyRequest = <T>(
     };
 
     if (transaction != null) {
-      timeoutId = setTimeout(abort, 200);
+      timeoutId = setTimeout(abort, 300);
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
@@ -53,7 +53,7 @@ export const futurifyTransaction = (
       }
     };
 
-    const timeoutId = setTimeout(abort, 200);
+    const timeoutId = setTimeout(abort, 300);
 
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);

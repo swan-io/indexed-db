@@ -2,40 +2,30 @@ import { Dict, Future, Option, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
-import { isSafari } from "./userAgent";
+import { indexedDBReady } from "./safari";
 
 const openDatabase = (
   databaseName: string,
   storeName: string,
 ): Future<Result<IDBDatabase, Error>> =>
-  Future.make((resolve) => {
-    const request = indexedDB.open(databaseName);
+  indexedDBReady().flatMapOk(() =>
+    Future.make((resolve) => {
+      const request = indexedDB.open(databaseName);
 
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(storeName);
-    };
-    request.onsuccess = () => {
-      resolve(Result.Ok(request.result));
-    };
-    request.onerror = () => {
-      resolve(Result.Error(rewriteError(request.error)));
-    };
-
-    if (isSafari.get()) {
-      /**
-       * Safari has a horrible bug where IDB requests can hang forever.
-       * We resolve this future with error after 200ms if it seems to happen.
-       * @see https://bugs.webkit.org/show_bug.cgi?id=226547
-       */
-      setTimeout(() => {
-        const message = `Couldn't open ${databaseName} IndexedDB database`;
-        resolve(Result.Error(new Error(message)));
-      }, 200);
-    }
-  });
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(storeName);
+      };
+      request.onsuccess = () => {
+        resolve(Result.Ok(request.result));
+      };
+      request.onerror = () => {
+        resolve(Result.Error(rewriteError(request.error)));
+      };
+    }),
+  );
 
 export const openStore = (databaseName: string, storeName: string) => {
-  const databaseFuture = retry(() => openDatabase(databaseName, storeName));
+  const databaseFuture = openDatabase(databaseName, storeName);
   const inMemoryStore = new Map<string, Option<unknown>>();
 
   const getObjectStore = (
@@ -50,28 +40,28 @@ export const openStore = (databaseName: string, storeName: string) => {
       keys: T[],
     ): Future<Result<Record<T, unknown>, Error>> =>
       retry(() =>
-        getObjectStore("readonly").flatMapOk((store) =>
-          futurifyRequest("getMany", store.getAll(keys)),
-        ),
+        getObjectStore("readonly").flatMapOk((store) => {
+          return futurifyRequest("getMany", store.getAll(keys));
+        }),
       )
         .tapOk((values) => {
           keys.forEach((key, index) => {
             inMemoryStore.set(key, Option.Some(values[index]));
           });
         })
-        .flatMapError((error) =>
-          Future.value(
+        .flatMapError((error) => {
+          return Future.value(
             Option.all(
               keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
             ).toResult(error),
-          ),
-        )
-        .mapOk((values) =>
-          keys.reduce((object, key, index) => {
+          );
+        })
+        .mapOk((values) => {
+          return keys.reduce((object, key, index) => {
             object[key] = values[index] as unknown;
             return object;
-          }, {} as Record<T, unknown>),
-        ),
+          }, {} as Record<T, unknown>);
+        }),
 
     setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
       const entries = Dict.entries(object);

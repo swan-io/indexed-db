@@ -1,4 +1,4 @@
-import { iOSVersion } from "./userAgent";
+import { iOSVersion } from "./safari";
 
 export const rewriteError = (error: DOMException | null): Error => {
   if (error == null) {

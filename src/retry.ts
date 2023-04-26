@@ -2,15 +2,10 @@ import { Future, Result } from "@swan-io/boxed";
 
 export const retry = <A, E>(
   getFuture: () => Future<Result<A, E>>,
-  maxAttempts = 5,
-): Future<Result<A, E>> => {
-  const safeMaxAttempts = Math.max(maxAttempts, 1);
-
-  return getFuture().flatMapError((error) => {
-    if (safeMaxAttempts === 1) {
-      return Future.value(Result.Error(error));
-    }
-
-    return retry(getFuture, safeMaxAttempts - 1);
-  });
-};
+  maxAttempts = 3,
+): Future<Result<A, E>> =>
+  getFuture().flatMapError((error) =>
+    maxAttempts > 1
+      ? retry(getFuture, maxAttempts - 1)
+      : Future.value(Result.Error(error)),
+  );
