@@ -7,15 +7,7 @@ export const futurifyRequest = <T>(
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
     const transaction = request.transaction;
-    let aborted = false;
     let timeoutId: NodeJS.Timeout | undefined;
-
-    const abort = () => {
-      if (!aborted) {
-        aborted = true;
-        transaction?.abort();
-      }
-    };
 
     request.onsuccess = () => {
       clearTimeout(timeoutId);
@@ -27,16 +19,20 @@ export const futurifyRequest = <T>(
     };
 
     if (transaction != null) {
-      timeoutId = setTimeout(abort, 300);
+      timeoutId = setTimeout(() => {
+        transaction.abort();
+      }, 300);
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
-        const message = `${operationName} IndexedDB request timed out`;
-        resolve(Result.Error(new Error(message)));
+
+        resolve(
+          Result.Error(
+            new Error(`${operationName} IndexedDB request timed out`),
+          ),
+        );
       };
     }
-
-    return abort;
   });
 
 export const futurifyTransaction = (
@@ -44,17 +40,6 @@ export const futurifyTransaction = (
   transaction: IDBTransaction,
 ): Future<Result<void, Error>> =>
   Future.make((resolve) => {
-    let aborted = false;
-
-    const abort = () => {
-      if (!aborted) {
-        aborted = true;
-        transaction.abort();
-      }
-    };
-
-    const timeoutId = setTimeout(abort, 300);
-
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
       resolve(Result.Ok(void 0));
@@ -63,11 +48,18 @@ export const futurifyTransaction = (
       clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(transaction.error)));
     };
+
+    const timeoutId = setTimeout(() => {
+      transaction.abort();
+    }, 300);
+
     transaction.onabort = () => {
       clearTimeout(timeoutId);
-      const message = `${operationName} IndexedDB transaction timed out`;
-      resolve(Result.Error(new Error(message)));
-    };
 
-    return abort;
+      resolve(
+        Result.Error(
+          new Error(`${operationName} IndexedDB transaction timed out`),
+        ),
+      );
+    };
   });

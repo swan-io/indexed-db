@@ -42,8 +42,7 @@ export const indexedDBReady = (): Future<Result<true, Error>> => {
         });
       } else {
         clearInterval(intervalId);
-        const message = "Couldn't list IndexedDB databases";
-        resolve(Result.Error(new Error(message)));
+        resolve(Result.Error(new Error("Couldn't list IndexedDB databases")));
       }
     };
 
