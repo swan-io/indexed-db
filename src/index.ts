@@ -1,19 +1,38 @@
 import { Dict, Future, Option, Result } from "@swan-io/boxed";
+import { rewriteError } from "./errors";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
+import { isSafari } from "./userAgent";
 
 const openDatabase = (
   databaseName: string,
   storeName: string,
-): Future<Result<IDBDatabase, Error>> => {
-  const request = indexedDB.open(databaseName);
+): Future<Result<IDBDatabase, Error>> =>
+  Future.make((resolve) => {
+    const request = indexedDB.open(databaseName);
 
-  request.onupgradeneeded = () => {
-    request.result.createObjectStore(storeName);
-  };
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(storeName);
+    };
+    request.onsuccess = () => {
+      resolve(Result.Ok(request.result));
+    };
+    request.onerror = () => {
+      resolve(Result.Error(rewriteError(request.error)));
+    };
 
-  return futurifyRequest("openDatabase", request);
-};
+    if (isSafari.get()) {
+      /**
+       * Safari has a horrible bug where IDB requests can hang forever.
+       * We resolve this future with error after 200ms if it seems to happen.
+       * @see https://bugs.webkit.org/show_bug.cgi?id=226547
+       */
+      setTimeout(() => {
+        const message = `Couldn't open ${databaseName} IndexedDB database`;
+        resolve(Result.Error(new Error(message)));
+      }, 200);
+    }
+  });
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = retry(() => openDatabase(databaseName, storeName));

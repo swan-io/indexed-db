@@ -1,15 +1,24 @@
 import { Future, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 
+const getTimeoutError = (operationName: string) =>
+  new Error(`IndexedDB ${operationName} call timed out`);
+
 export const futurifyRequest = <T>(
-  name: string,
+  operationName: string,
   request: IDBRequest<T>,
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
-    const timeoutId = setTimeout(() => {
-      const error = new Error(`IndexedDB ${name} request timed out`);
-      resolve(Result.Error(error));
-    }, 200);
+    const transaction = request.transaction;
+    let aborted = false;
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    const abort = () => {
+      if (!aborted) {
+        aborted = true;
+        transaction?.abort();
+      }
+    };
 
     request.onsuccess = () => {
       clearTimeout(timeoutId);
@@ -19,28 +28,47 @@ export const futurifyRequest = <T>(
       clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(request.error)));
     };
+
+    if (transaction != null) {
+      timeoutId = setTimeout(abort, 200);
+
+      transaction.onabort = () => {
+        clearTimeout(timeoutId);
+        resolve(Result.Error(getTimeoutError(operationName)));
+      };
+    }
+
+    return abort;
   });
 
 export const futurifyTransaction = (
-  name: string,
+  operationName: string,
   transaction: IDBTransaction,
 ): Future<Result<void, Error>> =>
   Future.make((resolve) => {
-    const timeoutId = setTimeout(() => {
-      const error = new Error(`IndexedDB ${name} transaction timed out`);
-      resolve(Result.Error(error));
-    }, 200);
+    let aborted = false;
+
+    const abort = () => {
+      if (!aborted) {
+        aborted = true;
+        transaction.abort();
+      }
+    };
+
+    const timeoutId = setTimeout(abort, 200);
 
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
       resolve(Result.Ok(void 0));
     };
-    transaction.onabort = () => {
-      clearTimeout(timeoutId);
-      resolve(Result.Error(rewriteError(transaction.error)));
-    };
     transaction.onerror = () => {
       clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(transaction.error)));
     };
+    transaction.onabort = () => {
+      clearTimeout(timeoutId);
+      resolve(Result.Error(getTimeoutError(operationName)));
+    };
+
+    return abort;
   });

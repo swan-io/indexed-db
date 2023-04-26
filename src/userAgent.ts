@@ -10,3 +10,11 @@ export const iOSVersion = Lazy(() => {
     ? Number(versionMatch.split("_").slice(0, 2).join("."))
     : -1;
 });
+
+// https://github.com/jakearchibald/safari-14-idb-fix/blob/v3.0.0/src/index.ts#L8
+export const isSafari = Lazy(
+  () =>
+    !navigator.userAgentData &&
+    /Safari\//.test(navigator.userAgent) &&
+    !/Chrom(e|ium)\//.test(navigator.userAgent),
+);
