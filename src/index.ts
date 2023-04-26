@@ -51,12 +51,10 @@ export const openStore = (databaseName: string, storeName: string) => {
             inMemoryStore.set(key, Option.Some(values[index]));
           });
         })
-        .flatMapError((error) => {
-          return Future.value(
-            Option.all(
-              keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
-            ).toResult(error),
-          );
+        .mapErrorToResult((error) => {
+          return Option.all(
+            keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
+          ).toResult(error);
         }, true)
         .mapOk((values) => {
           return keys.reduce((object, key, index) => {

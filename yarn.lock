@@ -1312,10 +1312,10 @@
     magic-string "^0.25.0"
     string.prototype.matchall "^4.0.6"
 
-"@swan-io/boxed@^0.13.0":
-  version "0.13.0"
-  resolved "https://registry.yarnpkg.com/@swan-io/boxed/-/boxed-0.13.0.tgz#02afc3a48d54d080098eb0f1e7a4822a63902326"
-  integrity sha512-lsHeRnTVu2hKYg4Y5eILoppYo+j5K7GzAq7HNg1ejaRTajM0cjxCNlMacQL8T4YuDioTfCTOGB8SIAcqlNepnw==
+"@swan-io/boxed@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@swan-io/boxed/-/boxed-1.0.0.tgz#e230c5960e126dc6d9225920fbca13dca25a2de9"
+  integrity sha512-1Alf21KZJk+2jNCE/nlCs0divsFWWP1PACnMEwXK92aClfGPEFD256Z8tR0l94TymT7GILh5f0d2m0F8x6L5XQ==
 
 "@tootallnate/once@2":
   version "2.0.0"
