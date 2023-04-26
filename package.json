@@ -55,7 +55,7 @@
     "trailingComma": "all"
   },
   "dependencies": {
-    "@swan-io/boxed": "^1.0.0"
+    "@swan-io/boxed": "^1.0.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.32.3",
