@@ -31,7 +31,7 @@ export const futurifyRequest = <T>(
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
-        const message = `IndexedDB ${operationName} call timed out`;
+        const message = `${operationName} IndexedDB request timed out`;
         resolve(Result.Error(new Error(message)));
       };
     }
@@ -65,7 +65,7 @@ export const futurifyTransaction = (
     };
     transaction.onabort = () => {
       clearTimeout(timeoutId);
-      const message = `IndexedDB ${operationName} call timed out`;
+      const message = `${operationName} IndexedDB transaction timed out`;
       resolve(Result.Error(new Error(message)));
     };
 
