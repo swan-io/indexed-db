@@ -6,6 +6,5 @@ export default defineConfig({
     include: ["./tests/unit/**/*.test.ts"],
     setupFiles: ["fake-indexeddb/auto"],
     watch: false,
-    threads: false,
   },
 });

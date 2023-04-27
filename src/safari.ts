@@ -42,8 +42,14 @@ export const indexedDBReady = (): Future<Result<true, DOMException>> => {
         });
       } else {
         clearInterval(intervalId);
+
         resolve(
-          Result.Error(new DOMException("Couldn't list IndexedDB databases")),
+          Result.Error(
+            new DOMException(
+              "Couldn't list IndexedDB databases",
+              "TimeoutError",
+            ),
+          ),
         );
       }
     };

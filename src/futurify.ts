@@ -25,9 +25,13 @@ export const futurifyRequest = <T>(
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
+
         resolve(
           Result.Error(
-            new DOMException(`${operationName} IndexedDB request timed out`),
+            new DOMException(
+              `${operationName} IndexedDB request timed out`,
+              "TimeoutError",
+            ),
           ),
         );
       };
@@ -54,9 +58,13 @@ export const futurifyTransaction = (
 
     transaction.onabort = () => {
       clearTimeout(timeoutId);
+
       resolve(
         Result.Error(
-          new DOMException(`${operationName} IndexedDB transaction timed out`),
+          new DOMException(
+            `${operationName} IndexedDB transaction timed out`,
+            "TimeoutError",
+          ),
         ),
       );
     };
