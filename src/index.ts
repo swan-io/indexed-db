@@ -6,7 +6,7 @@ import { indexedDBReady } from "./safari";
 const openDatabase = (
   databaseName: string,
   storeName: string,
-): Future<Result<IDBDatabase, Error>> =>
+): Future<Result<IDBDatabase, DOMException>> =>
   indexedDBReady().flatMapOk(() => {
     const request = indexedDB.open(databaseName);
 
@@ -23,7 +23,7 @@ export const openStore = (databaseName: string, storeName: string) => {
 
   const getObjectStore = (
     transactionMode: IDBTransactionMode,
-  ): Future<Result<IDBObjectStore, Error>> =>
+  ): Future<Result<IDBObjectStore, DOMException>> =>
     databaseFuture.mapOk((database) =>
       database.transaction(storeName, transactionMode).objectStore(storeName),
     );
@@ -31,7 +31,7 @@ export const openStore = (databaseName: string, storeName: string) => {
   return {
     getMany: <T extends string>(
       keys: T[],
-    ): Future<Result<Record<T, unknown>, Error>> =>
+    ): Future<Result<Record<T, unknown>, DOMException>> =>
       retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
           futurifyRequest("getMany", store.getAll(keys)),
@@ -54,7 +54,9 @@ export const openStore = (databaseName: string, storeName: string) => {
           }, {} as Record<T, unknown>),
         ),
 
-    setMany: (object: Record<string, unknown>): Future<Result<void, Error>> => {
+    setMany: (
+      object: Record<string, unknown>,
+    ): Future<Result<void, DOMException>> => {
       const entries = Dict.entries(object);
 
       entries.forEach(([key, value]) => {
@@ -69,7 +71,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       );
     },
 
-    clear: (): Future<Result<void, Error>> =>
+    clear: (): Future<Result<void, DOMException>> =>
       retry(() =>
         getObjectStore("readwrite").flatMapOk((store) => {
           store.clear();

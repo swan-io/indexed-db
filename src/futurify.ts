@@ -4,7 +4,7 @@ import { rewriteError } from "./errors";
 export const futurifyRequest = <T>(
   operationName: string,
   request: IDBRequest<T>,
-): Future<Result<T, Error>> =>
+): Future<Result<T, DOMException>> =>
   Future.make((resolve) => {
     const transaction = request.transaction;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -27,7 +27,7 @@ export const futurifyRequest = <T>(
         clearTimeout(timeoutId);
         resolve(
           Result.Error(
-            new Error(`${operationName} IndexedDB request timed out`),
+            new DOMException(`${operationName} IndexedDB request timed out`),
           ),
         );
       };
@@ -37,7 +37,7 @@ export const futurifyRequest = <T>(
 export const futurifyTransaction = (
   operationName: string,
   transaction: IDBTransaction,
-): Future<Result<void, Error>> =>
+): Future<Result<void, DOMException>> =>
   Future.make((resolve) => {
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
@@ -56,7 +56,7 @@ export const futurifyTransaction = (
       clearTimeout(timeoutId);
       resolve(
         Result.Error(
-          new Error(`${operationName} IndexedDB transaction timed out`),
+          new DOMException(`${operationName} IndexedDB transaction timed out`),
         ),
       );
     };

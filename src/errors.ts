@@ -1,16 +1,21 @@
 import { iOSVersion } from "./safari";
 
-const mergeErrors = (errors: { original: Error; new: Error }) => {
-  if (errors.original.stack != null) {
-    errors.new.stack = errors.original.stack;
+const deriveError = (
+  originalError: DOMException,
+  newMessage: string,
+): DOMException => {
+  const newError = new DOMException(newMessage, originalError.name);
+
+  if (originalError.stack != null) {
+    newError.stack = originalError.stack;
   }
 
-  return errors.new;
+  return newError;
 };
 
-export const rewriteError = (error: DOMException | null): Error => {
+export const rewriteError = (error: DOMException | null): DOMException => {
   if (error == null) {
-    return new Error("Unknown IndexedDB error");
+    return new DOMException("Unknown IndexedDB error", "UnknownError");
   }
 
   // https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L915
@@ -19,28 +24,24 @@ export const rewriteError = (error: DOMException | null): Error => {
       "An internal error was encountered in the Indexed Database server";
 
     if (error.message.indexOf(IOS_ERROR) >= 0) {
-      return mergeErrors({
-        original: error,
-        new: new Error(
-          `IndexedDB has thrown '${IOS_ERROR}'. ` +
-            `This is likely due to an unavoidable bug in iOS ` +
-            `(https://bugs.webkit.org/show_bug.cgi?id=197050).`,
-        ),
-      });
+      return deriveError(
+        error,
+        `IndexedDB has thrown '${IOS_ERROR}'. ` +
+          `This is likely due to an unavoidable bug in iOS ` +
+          `(https://bugs.webkit.org/show_bug.cgi?id=197050).`,
+      );
     }
   }
 
   // https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L335
   if (error.name === "InvalidStateError") {
-    return mergeErrors({
-      original: error,
-      new: new Error(
-        `Unable to open an IndexedDB connection. ` +
-          `This could be due to running in a private browsing ` +
-          `session on a browser whose private browsing ` +
-          `sessions do not support IndexedDB: ${error.message}`,
-      ),
-    });
+    return deriveError(
+      error,
+      `Unable to open an IndexedDB connection. ` +
+        `This could be due to running in a private browsing ` +
+        `session on a browser whose private browsing ` +
+        `sessions do not support IndexedDB: ${error.message}`,
+    );
   }
 
   return error;

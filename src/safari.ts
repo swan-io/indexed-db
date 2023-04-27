@@ -17,7 +17,7 @@ export const iOSVersion = Lazy(() => {
  * @see https://bugs.webkit.org/show_bug.cgi?id=226547
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-export const indexedDBReady = (): Future<Result<true, Error>> => {
+export const indexedDBReady = (): Future<Result<true, DOMException>> => {
   const isSafari =
     !navigator.userAgentData &&
     /Safari\//.test(navigator.userAgent) &&
@@ -42,7 +42,9 @@ export const indexedDBReady = (): Future<Result<true, Error>> => {
         });
       } else {
         clearInterval(intervalId);
-        resolve(Result.Error(new Error("Couldn't list IndexedDB databases")));
+        resolve(
+          Result.Error(new DOMException("Couldn't list IndexedDB databases")),
+        );
       }
     };
 
