@@ -44,15 +44,13 @@ describe("Safari 12.2", () => {
 
 describe("Safari 14.6 (unresponsive)", () => {
   beforeAll(() => {
-    console.log(navigator.userAgent);
-
-    vi.stubGlobal("navigator", {
-      userAgent: userAgents["14.6"],
-    });
-
     vi.stubGlobal("indexedDB", {
       ...new IDBFactory(),
       databases: () => new Promise<IDBDatabaseInfo[]>(() => {}),
+    });
+
+    vi.stubGlobal("navigator", {
+      userAgent: userAgents["14.6"],
     });
   });
 
@@ -71,10 +69,6 @@ describe("Safari 14.6 (unresponsive)", () => {
 
 describe("Safari 14.6 (unresponsive at first)", () => {
   beforeAll(() => {
-    vi.stubGlobal("navigator", {
-      userAgent: userAgents["14.6"],
-    });
-
     let attempts = 0;
 
     vi.stubGlobal("indexedDB", {
@@ -84,6 +78,10 @@ describe("Safari 14.6 (unresponsive at first)", () => {
           attempts++;
           attempts === 5 && resolve([]);
         }),
+    });
+
+    vi.stubGlobal("navigator", {
+      userAgent: userAgents["14.6"],
     });
   });
 
@@ -99,12 +97,10 @@ describe("Safari 14.6 (unresponsive at first)", () => {
 
 describe("Safari 14.6 (responsive)", () => {
   beforeAll(() => {
+    vi.stubGlobal("indexedDB", new IDBFactory());
+
     vi.stubGlobal("navigator", {
       userAgent: userAgents["14.6"],
-    });
-
-    vi.stubGlobal("indexedDB", {
-      ...new IDBFactory(),
     });
   });
 
@@ -120,10 +116,6 @@ describe("Safari 14.6 (responsive)", () => {
 
 describe("Safari 14.6 (responsive, but too late)", () => {
   beforeAll(() => {
-    vi.stubGlobal("navigator", {
-      userAgent: userAgents["14.6"],
-    });
-
     let attempts = 0;
 
     vi.stubGlobal("indexedDB", {
@@ -133,6 +125,10 @@ describe("Safari 14.6 (responsive, but too late)", () => {
           attempts++;
           attempts === 15 && resolve([]);
         }),
+    });
+
+    vi.stubGlobal("navigator", {
+      userAgent: userAgents["14.6"],
     });
   });
 
