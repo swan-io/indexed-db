@@ -1,4 +1,4 @@
-import { Dict, Future, Option, Result } from "@swan-io/boxed";
+import { Dict, Future, Result } from "@swan-io/boxed";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
@@ -19,7 +19,7 @@ const openDatabase = (
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = openDatabase(databaseName, storeName);
-  const inMemoryStore = new Map<string, Option<unknown>>();
+  const inMemoryStore = new Map<string, unknown>();
 
   const getObjectStore = (
     transactionMode: IDBTransactionMode,
@@ -41,18 +41,18 @@ export const openStore = (databaseName: string, storeName: string) => {
       )
         .tapOk((values) => {
           keys.forEach((key, index) => {
-            inMemoryStore.set(key, Option.Some(values[index]));
+            inMemoryStore.set(key, values[index]);
           });
         })
-        .mapErrorToResult((error) =>
-          Option.all(
-            keys.map((key) => inMemoryStore.get(key) ?? Option.None()),
-          ).toResult(error),
+        .mapErrorToResult(() =>
+          Result.Ok<unknown[], DOMException>(
+            keys.map((key) => inMemoryStore.get(key)),
+          ),
         )
         .mapOk((values) =>
-          keys.reduce((object, key, index) => {
-            object[key] = values[index] as unknown;
-            return object;
+          keys.reduce((acc, key, index) => {
+            acc[key] = values[index] as unknown;
+            return acc;
           }, {} as Record<T, unknown>),
         ),
 
@@ -62,7 +62,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       const entries = Dict.entries(object);
 
       entries.forEach(([key, value]) => {
-        inMemoryStore.set(key, Option.Some(value));
+        inMemoryStore.set(key, value);
       });
 
       return retry(() =>

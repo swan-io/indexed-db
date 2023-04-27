@@ -11,10 +11,11 @@ afterAll(() => {
 });
 
 test("API stays usable thanks to in-memory store", async () => {
+  // TODO: Add ECDSA private key store with JWK export, just to try
   const store = await openStore("database", "store");
 
-  await store.setMany({ test: true });
-  const result = await store.getMany(["test"]);
+  await store.setMany({ foo: true });
+  const result = await store.getMany(["foo", "bar"]);
 
-  expect(result).toStrictEqual(Result.Ok({ test: true }));
+  expect(result).toStrictEqual(Result.Ok({ foo: true, bar: undefined }));
 });
