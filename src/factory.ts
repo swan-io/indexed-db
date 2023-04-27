@@ -1,15 +1,4 @@
-import { Future, Lazy, Result } from "@swan-io/boxed";
-
-// https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L241
-export const iOSVersion = Lazy(() => {
-  const versionMatch = navigator.userAgent.match(
-    /i(?:phone|pad|pod) os ([\d_]+)/i,
-  )?.[1];
-
-  return versionMatch != null
-    ? Number(versionMatch.split("_").slice(0, 2).join("."))
-    : -1;
-});
+import { Future, Result } from "@swan-io/boxed";
 
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
@@ -17,7 +6,18 @@ export const iOSVersion = Lazy(() => {
  * @see https://bugs.webkit.org/show_bug.cgi?id=226547
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-export const indexedDBReady = (): Future<Result<true, DOMException>> => {
+export const getIndexedDBFactory = (): Future<
+  Result<IDBFactory, DOMException>
+> => {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  if (indexedDB == null) {
+    return Future.value(
+      Result.Error(
+        new DOMException("indexedDB global doesn't exist", "UnknownError"),
+      ),
+    );
+  }
+
   const isSafari =
     !navigator.userAgentData &&
     /Safari\//.test(navigator.userAgent) &&
@@ -25,7 +25,7 @@ export const indexedDBReady = (): Future<Result<true, DOMException>> => {
 
   // No point putting other browsers or older versions of Safari through this mess.
   if (!isSafari || !("databases" in indexedDB)) {
-    return Future.value(Result.Ok(true));
+    return Future.value(Result.Ok(indexedDB));
   }
 
   let intervalId: NodeJS.Timer;
@@ -38,7 +38,7 @@ export const indexedDBReady = (): Future<Result<true, DOMException>> => {
       if (remainingAttempts > 0) {
         indexedDB.databases().finally(() => {
           clearInterval(intervalId);
-          resolve(Result.Ok(true));
+          resolve(Result.Ok(indexedDB));
         });
       } else {
         clearInterval(intervalId);

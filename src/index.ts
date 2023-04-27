@@ -1,13 +1,13 @@
 import { Dict, Future, Option, Result } from "@swan-io/boxed";
+import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry } from "./retry";
-import { indexedDBReady } from "./safari";
 
 const openDatabase = (
   databaseName: string,
   storeName: string,
 ): Future<Result<IDBDatabase, DOMException>> =>
-  indexedDBReady().flatMapOk(() => {
+  getIndexedDBFactory().flatMapOk(() => {
     const request = indexedDB.open(databaseName);
 
     request.onupgradeneeded = () => {
