@@ -58,14 +58,14 @@
     "@swan-io/boxed": "^1.0.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.32.3",
-    "@typescript-eslint/eslint-plugin": "^5.59.0",
-    "@typescript-eslint/parser": "^5.59.0",
+    "@playwright/test": "^1.33.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.1",
+    "@typescript-eslint/parser": "^5.59.1",
     "eslint": "^8.39.0",
     "fake-indexeddb": "^4.0.1",
     "jsdom": "^21.1.1",
     "microbundle": "^0.15.1",
-    "playwright": "^1.32.3",
+    "playwright": "^1.33.0",
     "prettier": "^2.8.8",
     "prettier-plugin-organize-imports": "^3.2.2",
     "typescript": "^5.0.4",
