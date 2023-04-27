@@ -34,7 +34,9 @@ export const openStore = (databaseName: string, storeName: string) => {
     ): Future<Result<Record<T, unknown>, DOMException>> =>
       retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
-          futurifyRequest("getMany", store.getAll(keys)),
+          Future.all(
+            keys.map((key) => futurifyRequest("getMany", store.get(key))),
+          ).map((results) => Result.all(results)),
         ),
       )
         .tapOk((values) => {
