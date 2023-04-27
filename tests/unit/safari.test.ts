@@ -102,13 +102,17 @@ describe("Safari 14.6 (responsive)", () => {
     vi.stubGlobal("navigator", {
       userAgent: userAgents["14.6"],
     });
+
+    vi.stubGlobal("indexedDB", {
+      ...new IDBFactory(),
+    });
   });
 
   afterAll(() => {
     vi.unstubAllGlobals();
   });
 
-  test("indexedDBReady resolve with ok if indexedDB.databases resolve", async () => {
+  test("indexedDBReady resolve with ok if indexedDB.databases resolve immediately", async () => {
     const result = await indexedDBReady();
     expect(result).toStrictEqual(Result.Ok(true));
   });
