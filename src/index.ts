@@ -1,4 +1,9 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
+import {
+  getDeletableDatabases,
+  setDatabaseAsDeletable,
+  unsetDatabaseAsDeletable,
+} from "./clearing";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { zip } from "./helpers";
@@ -8,15 +13,30 @@ const openDatabase = (
   databaseName: string,
   storeName: string,
 ): Future<Result<IDBDatabase, DOMException>> =>
-  getIndexedDBFactory().flatMapOk(() => {
-    const request = indexedDB.open(databaseName);
+  getIndexedDBFactory()
+    .flatMapOk((factory) => {
+      const databaseNames = getDeletableDatabases();
 
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(storeName);
-    };
+      if (!databaseNames.includes(databaseName)) {
+        return Future.value(Result.Ok(factory));
+      }
 
-    return futurifyRequest("openDatabase", request);
-  });
+      return futurifyRequest(
+        "deleteDatabase",
+        factory.deleteDatabase(databaseName),
+      )
+        .tapOk(() => unsetDatabaseAsDeletable(databaseName))
+        .map(() => Result.Ok(factory));
+    })
+    .flatMapOk((factory) => {
+      const request = factory.open(databaseName);
+
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(storeName);
+      };
+
+      return futurifyRequest("openDatabase", request);
+    });
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = openDatabase(databaseName, storeName);
@@ -78,6 +98,7 @@ export const openStore = (databaseName: string, storeName: string) => {
           return futurifyTransaction("setMany", store.transaction);
         }),
       ).tapError(() => {
+        setDatabaseAsDeletable(databaseName, storeName);
         useInMemoryStore = true;
       });
     },
@@ -96,6 +117,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       )
         .tap(() => inMemoryStore.clear())
         .tapError(() => {
+          setDatabaseAsDeletable(databaseName, storeName);
           useInMemoryStore = true;
         });
     },
