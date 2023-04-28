@@ -1,4 +1,4 @@
-export const zip = <T extends string>(keys: T[], values: unknown[]) =>
+export const zipToObject = <T extends string>(keys: T[], values: unknown[]) =>
   keys
     .slice(0, Math.min(keys.length, values.length))
     .reduce((acc, key, index) => {

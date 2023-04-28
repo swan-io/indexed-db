@@ -6,7 +6,7 @@ import {
 } from "./clearing";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
-import { zip } from "./helpers";
+import { zipToObject } from "./helpers";
 import { retry } from "./retry";
 
 export const openStore = (databaseName: string, storeName: string) => {
@@ -51,7 +51,7 @@ export const openStore = (databaseName: string, storeName: string) => {
     ): Future<Result<Record<T, unknown>, DOMException>> => {
       if (useInMemoryStore) {
         const values = keys.map((key) => inMemoryStore.get(key));
-        return Future.value(Result.Ok(zip(keys, values)));
+        return Future.value(Result.Ok(zipToObject(keys, values)));
       }
 
       return retry(() =>
@@ -71,7 +71,7 @@ export const openStore = (databaseName: string, storeName: string) => {
             keys.map((key) => inMemoryStore.get(key)),
           ),
         )
-        .mapOk((values: unknown[]) => zip(keys, values));
+        .mapOk((values: unknown[]) => zipToObject(keys, values));
     },
 
     setMany: (
