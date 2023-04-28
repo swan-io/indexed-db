@@ -1,8 +1,8 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import {
+  addClearableStore,
   isStoreClearable,
-  setStoreAsClearable,
-  unsetStoreAsClearable,
+  removeClearableStore,
 } from "./clearing";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
@@ -35,7 +35,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       store.clear();
 
       return futurifyTransaction("clear", store.transaction)
-        .tapOk(() => unsetStoreAsClearable(databaseName, storeName))
+        .tapOk(() => removeClearableStore(databaseName, storeName))
         .tapError(() => {
           readFromInMemoryStore = true;
         })
@@ -98,7 +98,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         }),
       ).tapError(() => {
         readFromInMemoryStore = true;
-        setStoreAsClearable(databaseName, storeName);
+        addClearableStore(databaseName, storeName);
       });
     },
 
@@ -117,7 +117,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         .tap(() => inMemoryStore.clear())
         .tapError(() => {
           readFromInMemoryStore = true;
-          setStoreAsClearable(databaseName, storeName);
+          addClearableStore(databaseName, storeName);
         });
     },
   };

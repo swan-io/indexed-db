@@ -32,7 +32,7 @@ export const isStoreClearable = (
     (item) => item[0] === databaseName && item[1] === storeName,
   ) > -1;
 
-export const setStoreAsClearable = (
+export const addClearableStore = (
   databaseName: string,
   storeName: string,
 ): void => {
@@ -42,7 +42,7 @@ export const setStoreAsClearable = (
   } catch {} // eslint-disable-line no-empty
 };
 
-export const unsetStoreAsClearable = (
+export const removeClearableStore = (
   databaseName: string,
   storeName: string,
 ): void => {
