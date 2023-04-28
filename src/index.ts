@@ -1,6 +1,7 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
+import { zip } from "./helpers";
 import { retry } from "./retry";
 
 const openDatabase = (
@@ -19,6 +20,7 @@ const openDatabase = (
 
 export const openStore = (databaseName: string, storeName: string) => {
   const databaseFuture = openDatabase(databaseName, storeName);
+  let useInMemoryStore = false;
   const inMemoryStore = new Map<string, unknown>();
 
   const getObjectStore = (
@@ -31,15 +33,20 @@ export const openStore = (databaseName: string, storeName: string) => {
   return {
     getMany: <T extends string>(
       keys: T[],
-    ): Future<Result<Record<T, unknown>, DOMException>> =>
-      retry(() =>
+    ): Future<Result<Record<T, unknown>, DOMException>> => {
+      if (useInMemoryStore) {
+        const values = keys.map((key) => inMemoryStore.get(key));
+        return Future.value(Result.Ok(zip(keys, values)));
+      }
+
+      return retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
           Future.all(
             keys.map((key) => futurifyRequest("getMany", store.get(key))),
           ).map((results) => Result.all(results)),
         ),
       )
-        .tapOk((values) => {
+        .tapOk((values: unknown[]) => {
           keys.forEach((key, index) => {
             inMemoryStore.set(key, values[index]);
           });
@@ -49,38 +56,48 @@ export const openStore = (databaseName: string, storeName: string) => {
             keys.map((key) => inMemoryStore.get(key)),
           ),
         )
-        .mapOk((values) =>
-          keys.reduce((acc, key, index) => {
-            acc[key] = values[index] as unknown;
-            return acc;
-          }, {} as Record<T, unknown>),
-        ),
+        .mapOk((values: unknown[]) => zip(keys, values));
+    },
 
     setMany: (
       object: Record<string, unknown>,
-    ): Future<Result<void, DOMException>> => {
+    ): Future<Result<undefined, DOMException>> => {
       const entries = Dict.entries(object);
 
       entries.forEach(([key, value]) => {
         inMemoryStore.set(key, value);
       });
 
+      if (useInMemoryStore) {
+        return Future.value(Result.Ok(undefined));
+      }
+
       return retry(() =>
         getObjectStore("readwrite").flatMapOk((store) => {
           entries.forEach(([key, value]) => store.put(value, key));
           return futurifyTransaction("setMany", store.transaction);
         }),
-      );
+      ).tapError(() => {
+        useInMemoryStore = true;
+      });
     },
 
-    clear: (): Future<Result<void, DOMException>> =>
-      retry(() =>
+    clear: (): Future<Result<undefined, DOMException>> => {
+      if (useInMemoryStore) {
+        inMemoryStore.clear();
+        return Future.value(Result.Ok(undefined));
+      }
+
+      return retry(() =>
         getObjectStore("readwrite").flatMapOk((store) => {
           store.clear();
           return futurifyTransaction("clear", store.transaction);
         }),
-      ).tapOk(() => {
-        inMemoryStore.clear();
-      }),
+      )
+        .tap(() => inMemoryStore.clear())
+        .tapError(() => {
+          useInMemoryStore = true;
+        });
+    },
   };
 };

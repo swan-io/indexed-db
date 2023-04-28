@@ -41,11 +41,11 @@ export const futurifyRequest = <T>(
 export const futurifyTransaction = (
   operationName: string,
   transaction: IDBTransaction,
-): Future<Result<void, DOMException>> =>
+): Future<Result<undefined, DOMException>> =>
   Future.make((resolve) => {
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
-      resolve(Result.Ok(void 0));
+      resolve(Result.Ok(undefined));
     };
     transaction.onerror = () => {
       clearTimeout(timeoutId);
