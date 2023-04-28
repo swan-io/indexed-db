@@ -1,41 +1,58 @@
-const STORAGE_KEY = "idbDeletableDatabases";
+const STORAGE_KEY = "idbClearableStores";
 
-const getDeletableDatabases = (): string[] => {
+type Item = [databaseName: string, storeName: string];
+
+const getClearableStores = (): Item[] => {
   try {
-    const databaseNames: unknown = JSON.parse(
+    const items: unknown = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "[]",
     );
 
-    if (!Array.isArray(databaseNames)) {
+    if (!Array.isArray(items)) {
       return [];
     }
 
-    return databaseNames.filter(
-      (item): item is string => typeof item === "string",
+    return items.filter(
+      (item): item is Item =>
+        Array.isArray(item) &&
+        item.length === 2 &&
+        typeof item[0] === "string" &&
+        typeof item[1] === "string",
     );
   } catch {
     return [];
   }
 };
 
-export const isDatabaseDeletable = (databaseName: string) =>
-  getDeletableDatabases().indexOf(databaseName) > -1;
+export const isStoreClearable = (
+  databaseName: string,
+  storeName: string,
+): boolean =>
+  getClearableStores().findIndex(
+    (item) => item[0] === databaseName && item[1] === storeName,
+  ) > -1;
 
-export const setDatabaseAsDeletable = (databaseName: string) => {
+export const setStoreAsClearable = (
+  databaseName: string,
+  storeName: string,
+): void => {
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify([...getDeletableDatabases(), databaseName]),
-    );
+    const items: Item[] = [...getClearableStores(), [databaseName, storeName]];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch {} // eslint-disable-line no-empty
 };
 
-export const unsetDatabaseAsDeletable = (databaseName: string) => {
+export const unsetStoreAsClearable = (
+  databaseName: string,
+  storeName: string,
+): void => {
   try {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(
-        getDeletableDatabases().filter((item) => item !== databaseName),
+        getClearableStores().filter(
+          (item) => item[0] !== databaseName && item[1] !== storeName,
+        ),
       ),
     );
   } catch {} // eslint-disable-line no-empty

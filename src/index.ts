@@ -1,8 +1,8 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import {
-  isDatabaseDeletable,
-  setDatabaseAsDeletable,
-  unsetDatabaseAsDeletable,
+  isStoreClearable,
+  setStoreAsClearable,
+  unsetStoreAsClearable,
 } from "./clearing";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
@@ -15,20 +15,6 @@ export const openStore = (databaseName: string, storeName: string) => {
 
   const databaseFuture = getIndexedDBFactory()
     .flatMapOk((factory) => {
-      if (!isDatabaseDeletable(databaseName)) {
-        return Future.value(Result.Ok(factory));
-      }
-
-      const request = factory.deleteDatabase(databaseName);
-
-      return futurifyRequest("deleteDatabase", request)
-        .tapOk(() => unsetDatabaseAsDeletable(databaseName))
-        .tapError(() => {
-          useInMemoryStore = true;
-        })
-        .map(() => Result.Ok(factory));
-    })
-    .flatMapOk((factory) => {
       const request = factory.open(databaseName);
 
       request.onupgradeneeded = () => {
@@ -36,6 +22,24 @@ export const openStore = (databaseName: string, storeName: string) => {
       };
 
       return futurifyRequest("openDatabase", request);
+    })
+    .flatMapOk((database) => {
+      if (!isStoreClearable(databaseName, storeName)) {
+        return Future.value(Result.Ok(database));
+      }
+
+      const store = database
+        .transaction(storeName, "readwrite")
+        .objectStore(storeName);
+
+      store.clear();
+
+      return futurifyTransaction("clear", store.transaction)
+        .tapOk(() => unsetStoreAsClearable(databaseName, storeName))
+        .tapError(() => {
+          useInMemoryStore = true;
+        })
+        .map(() => Result.Ok(database));
     });
 
   const getObjectStore = (
@@ -94,7 +98,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         }),
       ).tapError(() => {
         useInMemoryStore = true;
-        setDatabaseAsDeletable(databaseName);
+        setStoreAsClearable(databaseName, storeName);
       });
     },
 
@@ -113,7 +117,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         .tap(() => inMemoryStore.clear())
         .tapError(() => {
           useInMemoryStore = true;
-          setDatabaseAsDeletable(databaseName);
+          setStoreAsClearable(databaseName, storeName);
         });
     },
   };
