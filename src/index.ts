@@ -11,7 +11,7 @@ import { retry } from "./retry";
 
 export const openStore = (databaseName: string, storeName: string) => {
   const inMemoryStore = new Map<string, unknown>();
-  let useInMemoryStore = false;
+  let readFromMemoryStore = false;
 
   const databaseFuture = getIndexedDBFactory()
     .flatMapOk((factory) => {
@@ -37,7 +37,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       return futurifyTransaction("clear", store.transaction)
         .tapOk(() => unsetStoreAsClearable(databaseName, storeName))
         .tapError(() => {
-          useInMemoryStore = true;
+          readFromMemoryStore = true;
         })
         .map(() => Result.Ok(database));
     });
@@ -53,7 +53,7 @@ export const openStore = (databaseName: string, storeName: string) => {
     getMany: <T extends string>(
       keys: T[],
     ): Future<Result<Record<T, unknown>, DOMException>> => {
-      if (useInMemoryStore) {
+      if (readFromMemoryStore) {
         const values = keys.map((key) => inMemoryStore.get(key));
         return Future.value(Result.Ok(zipToObject(keys, values)));
       }
@@ -87,7 +87,7 @@ export const openStore = (databaseName: string, storeName: string) => {
         inMemoryStore.set(key, value);
       });
 
-      if (useInMemoryStore) {
+      if (readFromMemoryStore) {
         return Future.value(Result.Ok(undefined));
       }
 
@@ -97,13 +97,13 @@ export const openStore = (databaseName: string, storeName: string) => {
           return futurifyTransaction("setMany", store.transaction);
         }),
       ).tapError(() => {
-        useInMemoryStore = true;
+        readFromMemoryStore = true;
         setStoreAsClearable(databaseName, storeName);
       });
     },
 
     clear: (): Future<Result<undefined, DOMException>> => {
-      if (useInMemoryStore) {
+      if (readFromMemoryStore) {
         inMemoryStore.clear();
         return Future.value(Result.Ok(undefined));
       }
@@ -116,7 +116,7 @@ export const openStore = (databaseName: string, storeName: string) => {
       )
         .tap(() => inMemoryStore.clear())
         .tapError(() => {
-          useInMemoryStore = true;
+          readFromMemoryStore = true;
           setStoreAsClearable(databaseName, storeName);
         });
     },
