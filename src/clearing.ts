@@ -1,6 +1,6 @@
 const STORAGE_KEY = "idbDeletableDatabases";
 
-export const getDeletableDatabases = (): string[] => {
+const getDeletableDatabases = (): string[] => {
   try {
     const databaseNames: unknown = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "[]",
@@ -17,6 +17,9 @@ export const getDeletableDatabases = (): string[] => {
     return [];
   }
 };
+
+export const isDatabaseDeletable = (databaseName: string) =>
+  getDeletableDatabases().indexOf(databaseName) > -1;
 
 export const setDatabaseAsDeletable = (databaseName: string) => {
   try {
