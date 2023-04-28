@@ -6,8 +6,7 @@ import {
 } from "./clearing";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
-import { zipToObject } from "./helpers";
-import { retry } from "./retry";
+import { retry, zipToObject } from "./helpers";
 
 export const openStore = (databaseName: string, storeName: string) => {
   const inMemoryStore = new Map<string, unknown>();

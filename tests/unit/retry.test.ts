@@ -1,6 +1,6 @@
 import { Future, Result } from "@swan-io/boxed";
 import { expect, test } from "vitest";
-import { retry } from "../../src/retry";
+import { retry } from "../../src/helpers";
 
 test("retry make 3 attempts if future resolve with error", async () => {
   let attempts = 0;
