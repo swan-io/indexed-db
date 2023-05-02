@@ -5,14 +5,20 @@ export const getInMemoryStore = (
   storeName: string,
 ): Map<string, unknown> => {
   const currentDatabase = databases[databaseName];
-  const currentStore = currentDatabase?.[storeName];
-  const store = currentStore ?? new Map<string, unknown>();
 
   if (currentDatabase == null) {
+    const store = new Map<string, unknown>();
     databases[databaseName] = { [storeName]: store };
-  } else if (currentStore == null) {
-    currentDatabase[storeName] = store;
+    return store;
   }
 
-  return store;
+  const currentStore = currentDatabase[storeName];
+
+  if (currentStore == null) {
+    const store = new Map<string, unknown>();
+    currentDatabase[storeName] = store;
+    return store;
+  }
+
+  return currentStore;
 };
