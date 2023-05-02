@@ -69,11 +69,14 @@ export const openStore = (databaseName: string, storeName: string) => {
             inMemoryStore.set(key, values[index]);
           });
         })
-        .mapErrorToResult(() =>
-          Result.Ok<unknown[], DOMException>(
+        .mapErrorToResult(() => {
+          readFromInMemoryStore = true;
+          addClearableStore(databaseName, storeName);
+
+          return Result.Ok<unknown[], DOMException>(
             keys.map((key) => inMemoryStore.get(key)),
-          ),
-        )
+          );
+        })
         .mapOk((values: unknown[]) => zipToObject(keys, values));
     },
 
