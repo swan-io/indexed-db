@@ -28,7 +28,9 @@ export const isStoreClearable = (
   databaseName: string,
   storeName: string,
 ): boolean =>
-  getClearableStores().some(([a, b]) => a === databaseName && b === storeName);
+  getClearableStores().some(
+    (item) => item[0] === databaseName && item[1] === storeName,
+  );
 
 export const addClearableStore = (
   databaseName: string,
@@ -36,7 +38,11 @@ export const addClearableStore = (
 ): void => {
   const clearableStores = getClearableStores();
 
-  if (clearableStores.some(([a, b]) => a === databaseName && b === storeName)) {
+  if (
+    clearableStores.some(
+      (item) => item[0] === databaseName && item[1] === storeName,
+    )
+  ) {
     return;
   }
 
