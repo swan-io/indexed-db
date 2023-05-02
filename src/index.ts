@@ -7,9 +7,10 @@ import {
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry, zipToObject } from "./helpers";
+import { getInMemoryStore } from "./inMemoryStore";
 
 export const openStore = (databaseName: string, storeName: string) => {
-  const inMemoryStore = new Map<string, unknown>();
+  const inMemoryStore = getInMemoryStore(databaseName, storeName);
   let readFromInMemoryStore = false;
 
   const databaseFuture = getIndexedDBFactory()
