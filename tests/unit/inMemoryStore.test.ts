@@ -25,7 +25,7 @@ test("API stays usable thanks to in-memory store", async () => {
   // database.store has been flagged as clearable on next open
   expect(
     JSON.parse(localStorage.getItem("idbClearableStores") ?? "[]"),
-  ).toStrictEqual(["database", "store"]);
+  ).toStrictEqual([["database", "store"]]);
 
   expect(await store.getMany(["a", "b"])).toStrictEqual(
     Result.Ok({ a: true, b: undefined }),
