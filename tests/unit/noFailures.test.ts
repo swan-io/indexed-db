@@ -1,18 +1,18 @@
 import { Result } from "@swan-io/boxed";
+import { IDBFactory } from "fake-indexeddb";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { openStore } from "../../src";
 
 beforeAll(() => {
-  vi.stubGlobal("indexedDB", undefined);
+  vi.stubGlobal("indexedDB", new IDBFactory());
 });
 
 afterAll(() => {
   vi.unstubAllGlobals();
 });
 
-test("API stays usable thanks to in-memory store", async () => {
-  const onError = vi.fn();
-  const store = await openStore("database", "store", { onError });
+test("happy path with no failures", async () => {
+  const store = await openStore("database", "store");
 
   expect(await store.setMany({ A: true })).toStrictEqual(Result.Ok(undefined));
 
@@ -36,24 +36,5 @@ test("API stays usable thanks to in-memory store", async () => {
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(
     Result.Ok({ A: undefined, B: true }),
-  );
-
-  expect(onError).toHaveBeenCalledTimes(1);
-  expect(onError).toHaveBeenCalledWith(new DOMException());
-});
-
-test("In-memory stores are preserved during session", async () => {
-  const store = await openStore("database", "store");
-
-  expect(await store.getMany(["A", "B"])).toStrictEqual(
-    Result.Ok({ A: undefined, B: true }),
-  );
-});
-
-test("In-memory stores are created by database + store names", async () => {
-  const store = await openStore("database", "another-store");
-
-  expect(await store.getMany(["A", "B"])).toStrictEqual(
-    Result.Ok({ A: undefined, B: undefined }),
   );
 });

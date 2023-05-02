@@ -9,7 +9,14 @@ import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry, zipToObject } from "./helpers";
 import { getInMemoryStore } from "./inMemoryStore";
 
-export const openStore = (databaseName: string, storeName: string) => {
+export const openStore = (
+  databaseName: string,
+  storeName: string,
+  config: {
+    onError?: (error: Error) => void;
+  } = {},
+) => {
+  const { onError } = config;
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
   let readFromInMemoryStore = false;
 
@@ -36,8 +43,9 @@ export const openStore = (databaseName: string, storeName: string) => {
 
       return futurifyTransaction("clear", store.transaction)
         .tapOk(() => removeClearableStore(databaseName, storeName))
-        .tapError(() => {
+        .tapError((error) => {
           readFromInMemoryStore = true;
+          onError?.(error);
         })
         .map(() => Result.Ok(database));
     });
@@ -70,15 +78,18 @@ export const openStore = (databaseName: string, storeName: string) => {
             inMemoryStore.set(key, values[index]);
           });
         })
-        .mapErrorToResult(() => {
+        .mapErrorToResult((error) => {
           readFromInMemoryStore = true;
+          onError?.(error);
           addClearableStore(databaseName, storeName);
 
           return Result.Ok<unknown[], DOMException>(
             keys.map((key) => inMemoryStore.get(key)),
           );
         })
-        .mapOk((values: unknown[]) => zipToObject(keys, values));
+        .mapOk((values: unknown[]) => {
+          return zipToObject(keys, values);
+        });
     },
 
     setMany: (
@@ -99,9 +110,12 @@ export const openStore = (databaseName: string, storeName: string) => {
           entries.forEach(([key, value]) => store.put(value, key));
           return futurifyTransaction("setMany", store.transaction);
         }),
-      ).tapError(() => {
+      ).mapErrorToResult((error) => {
         readFromInMemoryStore = true;
+        onError?.(error);
         addClearableStore(databaseName, storeName);
+
+        return Result.Ok(undefined);
       });
     },
 
@@ -118,9 +132,12 @@ export const openStore = (databaseName: string, storeName: string) => {
         }),
       )
         .tap(() => inMemoryStore.clear())
-        .tapError(() => {
+        .mapErrorToResult((error) => {
           readFromInMemoryStore = true;
+          onError?.(error);
           addClearableStore(databaseName, storeName);
+
+          return Result.Ok(undefined);
         });
     },
   };
