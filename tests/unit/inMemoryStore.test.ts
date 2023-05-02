@@ -40,6 +40,10 @@ test("API stays usable thanks to in-memory store", async () => {
 
   expect(onError).toHaveBeenCalledTimes(1);
   expect(onError).toHaveBeenCalledWith(new DOMException());
+
+  expect(
+    JSON.parse(localStorage.getItem("idbClearableStores") ?? "[]"),
+  ).toStrictEqual([["database", "store"]]);
 });
 
 test("In-memory stores are preserved during session", async () => {
