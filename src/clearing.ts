@@ -28,16 +28,21 @@ export const isStoreClearable = (
   databaseName: string,
   storeName: string,
 ): boolean =>
-  getClearableStores().findIndex(
-    (item) => item[0] === databaseName && item[1] === storeName,
-  ) > -1;
+  getClearableStores().some(([a, b]) => a === databaseName && b === storeName);
 
 export const addClearableStore = (
   databaseName: string,
   storeName: string,
 ): void => {
+  const clearableStores = getClearableStores();
+
+  if (clearableStores.some(([a, b]) => a === databaseName && b === storeName)) {
+    return;
+  }
+
+  const items: Item[] = [...clearableStores, [databaseName, storeName]];
+
   try {
-    const items: Item[] = [...getClearableStores(), [databaseName, storeName]];
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch {} // eslint-disable-line no-empty
 };
