@@ -12,11 +12,11 @@ import { getInMemoryStore } from "./inMemoryStore";
 export const openStore = (
   databaseName: string,
   storeName: string,
-  config: {
+  options: {
     onError?: (error: Error) => void;
   } = {},
 ) => {
-  const { onError } = config;
+  const { onError } = options;
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
   let readFromInMemoryStore = false;
 
