@@ -30,7 +30,7 @@ export const openStore = (
 
       return futurifyRequest("openDatabase", request);
     })
-    .flatMapOk((database) => {
+    .flatMapOk((database): Future<Result<IDBDatabase, DOMException>> => {
       if (!isStoreClearable(databaseName, storeName)) {
         return Future.value(Result.Ok(database));
       }
@@ -41,13 +41,15 @@ export const openStore = (
 
       store.clear();
 
-      return futurifyTransaction("clear", store.transaction)
-        .tapOk(() => removeClearableStore(databaseName, storeName))
-        .tapError((error) => {
-          readFromInMemoryStore = true;
-          onError?.(error);
-        })
-        .map(() => Result.Ok(database));
+      return futurifyTransaction("clear", store.transaction).flatMapOk(() => {
+        removeClearableStore(databaseName, storeName);
+        return Future.value(Result.Ok(database));
+      });
+    })
+    .tapError((error) => {
+      readFromInMemoryStore = true;
+      onError?.(error);
+      addClearableStore(databaseName, storeName);
     });
 
   const getObjectStore = (
