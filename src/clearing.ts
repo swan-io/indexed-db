@@ -2,7 +2,7 @@ const STORAGE_KEY = "idbClearableStores";
 
 type Item = [databaseName: string, storeName: string];
 
-export const getClearableStores = (): Item[] => {
+const getClearableStores = (): Item[] => {
   try {
     const items: unknown = JSON.parse(
       localStorage.getItem(STORAGE_KEY) ?? "[]",

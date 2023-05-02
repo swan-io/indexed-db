@@ -35,10 +35,10 @@ export const openStore = (databaseName: string, storeName: string) => {
 
       return futurifyTransaction("clear", store.transaction)
         .tapOk(() => removeClearableStore(databaseName, storeName))
-        .tapError(() => {
-          readFromInMemoryStore = true;
-        })
         .map(() => Result.Ok(database));
+    })
+    .tapError(() => {
+      readFromInMemoryStore = true;
     });
 
   const getObjectStore = (
