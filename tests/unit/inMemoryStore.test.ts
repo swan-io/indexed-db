@@ -11,11 +11,35 @@ afterAll(() => {
 });
 
 test("API stays usable thanks to in-memory store", async () => {
-  // TODO: Add ECDSA private key store with JWK export, just to try
   const store = await openStore("database", "store");
 
-  await store.setMany({ foo: true });
-  const result = await store.getMany(["foo", "bar"]);
+  // As writing to indexedDB is impossible, DOMException will
+  // be returned for logging purposes.
+  expect(await store.setMany({ a: true })).toStrictEqual(
+    Result.Error(new DOMException()),
+  );
 
-  expect(result).toStrictEqual(Result.Ok({ foo: true, bar: undefined }));
+  // Once it has failed once, it starts using inMemoryStore only
+  expect(await store.setMany({ a: true })).toStrictEqual(Result.Ok(undefined));
+
+  // database.store has been flagged as clearable on next open
+  expect(
+    JSON.parse(localStorage.getItem("idbClearableStores") ?? "[]"),
+  ).toStrictEqual(["database", "store"]);
+
+  expect(await store.getMany(["a", "b"])).toStrictEqual(
+    Result.Ok({ a: true, b: undefined }),
+  );
+
+  expect(await store.setMany({ b: true })).toStrictEqual(Result.Ok(undefined));
+
+  expect(await store.getMany(["a", "b"])).toStrictEqual(
+    Result.Ok({ a: true, b: true }),
+  );
+
+  expect(await store.clear()).toStrictEqual(Result.Ok(undefined));
+
+  expect(await store.getMany(["a", "b"])).toStrictEqual(
+    Result.Ok({ a: undefined, b: undefined }),
+  );
 });
