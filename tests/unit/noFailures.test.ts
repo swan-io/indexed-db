@@ -13,7 +13,7 @@ afterAll(() => {
 
 test("happy path with no failures", async () => {
   const onError = vi.fn();
-  const store = await openStore("database", "store");
+  const store = await openStore("database", "store", { onError });
 
   expect(await store.setMany({ A: true })).toStrictEqual(Result.Ok(undefined));
 
