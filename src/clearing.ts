@@ -50,21 +50,22 @@ export const addClearableStore = (
 
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch {} // eslint-disable-line no-empty
+  } catch {
+    return;
+  }
 };
 
 export const removeClearableStore = (
   databaseName: string,
   storeName: string,
 ): void => {
+  const items: Item[] = getClearableStores().filter(
+    (item) => item[0] !== databaseName && item[1] !== storeName,
+  );
+
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        getClearableStores().filter(
-          (item) => item[0] !== databaseName && item[1] !== storeName,
-        ),
-      ),
-    );
-  } catch {} // eslint-disable-line no-empty
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    return;
+  }
 };
