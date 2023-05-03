@@ -1,8 +1,8 @@
-import { devices, PlaywrightTestConfig } from "@playwright/test";
+import { defineConfig, devices } from "@playwright/test";
 
 const CI = process.env.CI === String(true);
 
-const config: PlaywrightTestConfig = {
+export default defineConfig({
   forbidOnly: CI,
   reporter: [["line"], ["html"]],
   testDir: "./tests/e2e",
@@ -30,6 +30,4 @@ const config: PlaywrightTestConfig = {
       },
     },
   ],
-};
-
-export default config;
+});
