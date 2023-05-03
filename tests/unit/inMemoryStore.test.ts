@@ -12,7 +12,7 @@ afterAll(() => {
 
 test("API stays usable thanks to in-memory store", async () => {
   const onError = vi.fn();
-  const store = await openStore("database", "store", { onError });
+  const store = await openStore("database", "storeA", { onError });
 
   expect(await store.setMany({ A: true })).toStrictEqual(Result.Ok(undefined));
 
@@ -41,23 +41,27 @@ test("API stays usable thanks to in-memory store", async () => {
   expect(onError).toHaveBeenCalledTimes(1);
   expect(onError).toHaveBeenCalledWith(new DOMException());
 
-  expect(
-    JSON.parse(localStorage.getItem("idbClearableStores") ?? "[]"),
-  ).toStrictEqual([["database", "store"]]);
+  expect(localStorage.getItem("idbClearableStores")).toStrictEqual(
+    JSON.stringify([["database", "storeA"]]),
+  );
 });
 
 test("In-memory stores are preserved during session", async () => {
-  const store = await openStore("database", "store");
+  const firstOpenedStore = await openStore("database", "storeB");
+  await firstOpenedStore.setMany({ A: true });
+  const secondOpenedStore = await openStore("database", "storeB");
 
-  expect(await store.getMany(["A", "B"])).toStrictEqual(
-    Result.Ok({ A: undefined, B: true }),
+  expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual(
+    Result.Ok({ A: true, B: undefined }),
   );
 });
 
 test("In-memory stores are created by database + store names", async () => {
-  const store = await openStore("database", "another-store");
+  const firstOpenedStore = await openStore("database", "storeC");
+  await firstOpenedStore.setMany({ A: true });
+  const secondOpenedStore = await openStore("database", "storeD");
 
-  expect(await store.getMany(["A", "B"])).toStrictEqual(
+  expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual(
     Result.Ok({ A: undefined, B: undefined }),
   );
 });

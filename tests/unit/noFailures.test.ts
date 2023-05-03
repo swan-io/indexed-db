@@ -12,6 +12,7 @@ afterAll(() => {
 });
 
 test("happy path with no failures", async () => {
+  const onError = vi.fn();
   const store = await openStore("database", "store");
 
   expect(await store.setMany({ A: true })).toStrictEqual(Result.Ok(undefined));
@@ -37,4 +38,7 @@ test("happy path with no failures", async () => {
   expect(await store.getMany(["A", "B"])).toStrictEqual(
     Result.Ok({ A: undefined, B: true }),
   );
+
+  expect(onError).not.toHaveBeenCalled();
+  expect(localStorage.getItem("idbClearableStores")).toBeNull();
 });

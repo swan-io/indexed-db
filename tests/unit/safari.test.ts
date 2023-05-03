@@ -23,16 +23,16 @@ describe("Safari 12.2", () => {
   });
 
   test("rewriteError add context in case of an unknown iOS 12.x error", () => {
-    const error = new DOMException(
+    const ios12Error = new DOMException(
       "An internal error was encountered in the Indexed Database server",
       "UnknownError",
     );
 
-    const rewrittenError = rewriteError(error);
+    const rewrittenError = rewriteError(ios12Error);
 
-    expect(rewrittenError).toStrictEqual(new DOMException());
+    expect(rewrittenError).toBeInstanceOf(DOMException);
     expect(rewrittenError.name).toBe("UnknownError");
-    expect(error.stack).toStrictEqual(rewrittenError.stack);
+    expect(rewrittenError.stack).toStrictEqual(ios12Error.stack);
 
     expect(rewrittenError.message).toBe(
       `IndexedDB has thrown 'An internal error was encountered in the Indexed Database server'. ` +
