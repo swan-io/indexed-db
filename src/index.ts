@@ -4,7 +4,12 @@ import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry, zipToObject } from "./helpers";
 import { getInMemoryStore } from "./inMemoryStore";
 
-export const openStore = (databaseName: string, storeName: string) => {
+export const openStore = (
+  databaseName: string,
+  storeName: string,
+  options: { allowInMemoryFallback?: boolean } = {},
+) => {
+  const { allowInMemoryFallback = false } = options;
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
 
   const databaseFuture = getIndexedDBFactory().flatMapOk((factory) => {
@@ -27,40 +32,41 @@ export const openStore = (databaseName: string, storeName: string) => {
   return {
     getMany: <T extends string>(
       keys: T[],
-      options: {
-        onError?: (error: DOMException) => void;
-      } = {},
-    ): Future<Record<T, unknown>> => {
+    ): Future<Result<Record<T, unknown>, DOMException>> => {
       return retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
           Future.all(
             keys.map((key) => futurifyRequest("getMany", store.get(key))),
           ).map((results) => Result.all(results)),
         ),
-      ).map((result) => {
-        if (result.isError()) {
-          options.onError?.(result.getError());
+      )
+        .mapOk((data: unknown[]) => {
+          const values = data.map((value: unknown, index) => {
+            const key = keys[index];
+
+            if (typeof key === "undefined") {
+              return value;
+            }
+            if (typeof value === "undefined" && allowInMemoryFallback) {
+              return inMemoryStore.get(key);
+            }
+            if (allowInMemoryFallback) {
+              inMemoryStore.set(key, value);
+            }
+
+            return value;
+          });
+
+          return zipToObject(keys, values);
+        })
+        .mapErrorToResult((error) => {
+          if (!allowInMemoryFallback) {
+            return Result.Error(error);
+          }
 
           const values = keys.map((key) => inMemoryStore.get(key));
-          return zipToObject(keys, values);
-        }
-
-        const values = result.get().map((value: unknown, index) => {
-          const key = keys[index];
-
-          if (typeof key === "undefined") {
-            return value;
-          }
-          if (typeof value === "undefined") {
-            return inMemoryStore.get(key);
-          }
-
-          inMemoryStore.set(key, value);
-          return value;
+          return Result.Ok(zipToObject(keys, values));
         });
-
-        return zipToObject(keys, values);
-      });
     },
 
     setMany: (
@@ -74,9 +80,11 @@ export const openStore = (databaseName: string, storeName: string) => {
           return futurifyTransaction("setMany", store.transaction);
         }),
       ).tap(() => {
-        entries.forEach(([key, value]) => {
-          inMemoryStore.set(key, value);
-        });
+        if (allowInMemoryFallback) {
+          entries.forEach(([key, value]) => {
+            inMemoryStore.set(key, value);
+          });
+        }
       });
     },
 
@@ -87,7 +95,9 @@ export const openStore = (databaseName: string, storeName: string) => {
           return futurifyTransaction("clear", store.transaction);
         }),
       ).tapOk(() => {
-        inMemoryStore.clear();
+        if (allowInMemoryFallback) {
+          inMemoryStore.clear();
+        }
       });
     },
   };
