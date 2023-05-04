@@ -18,7 +18,7 @@ $ npm install --save @swan-io/indexed-db
 ## Quickstart
 
 ```ts
-const store = openStore("database", "store");
+const store = openStore("myDatabaseName", "myStoreName");
 
 store
   .setMany({
@@ -41,19 +41,17 @@ store
 
 ## API
 
-### openStore
-
-Opens a database, create a store if needed and returns methods to manipulate it.
+Open a database, create a store if needed and returns methods to manipulate it. You can open multiple databases / stores.
 
 ```ts
-const store = await openStore("database", "store", {
+const store = await openStore("myDatabaseName", "myStoreName", {
   enableInMemoryFallback: true, // keep data in-memory in cases of read failures (default: false)
   transactionRetries: 3, // retry failed transactions (default: 3)
   transactionTimeout: 300, // timeout a transaction when it takes too long (default: 300ms)
 });
 ```
 
-### getMany
+### store.getMany
 
 Get many values at once. Resolves with a record.
 
@@ -63,7 +61,7 @@ store
   .mapOk(({ firstName, lastName }) => console.log({ firstName, lastName }));
 ```
 
-### setMany
+### store.setMany
 
 Get many key-value pairs at once.
 
@@ -73,7 +71,7 @@ store
   .tapOk(() => console.log("✅"));
 ```
 
-### clear
+### store.clear
 
 Clear all values in the store.
 
