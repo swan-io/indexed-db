@@ -41,7 +41,8 @@ store
 
 ## API
 
-Open a database, create a store if needed and returns methods to manipulate it. You can open multiple databases / stores.
+Open a database, create a store if needed and returns methods to manipulate it.<br/>
+Note that you can open multiple databases / stores, with different names.
 
 ```ts
 const store = await openStore("myDatabaseName", "myStoreName", {
