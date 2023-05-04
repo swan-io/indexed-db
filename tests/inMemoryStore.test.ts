@@ -12,7 +12,7 @@ afterAll(() => {
 
 test("API stays usable thanks to in-memory store", async () => {
   const store = await openStore("database", "storeA", {
-    allowInMemoryFallback: true,
+    enableInMemoryFallback: true,
   });
 
   expect(await store.setMany({ A: true })).toStrictEqual(
@@ -43,13 +43,13 @@ test("API stays usable thanks to in-memory store", async () => {
 
 test("In-memory stores are preserved during session", async () => {
   const firstOpenedStore = await openStore("database", "storeB", {
-    allowInMemoryFallback: true,
+    enableInMemoryFallback: true,
   });
 
   await firstOpenedStore.setMany({ A: true });
 
   const secondOpenedStore = await openStore("database", "storeB", {
-    allowInMemoryFallback: true,
+    enableInMemoryFallback: true,
   });
 
   expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual(
@@ -59,13 +59,13 @@ test("In-memory stores are preserved during session", async () => {
 
 test("In-memory stores are created by database + store names", async () => {
   const firstOpenedStore = await openStore("database", "storeC", {
-    allowInMemoryFallback: true,
+    enableInMemoryFallback: true,
   });
 
   await firstOpenedStore.setMany({ A: true });
 
   const secondOpenedStore = await openStore("database", "storeD", {
-    allowInMemoryFallback: true,
+    enableInMemoryFallback: true,
   });
 
   expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual(

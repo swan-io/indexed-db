@@ -7,9 +7,9 @@ import { getInMemoryStore } from "./inMemoryStore";
 export const openStore = (
   databaseName: string,
   storeName: string,
-  options: { allowInMemoryFallback?: boolean } = {},
+  options: { enableInMemoryFallback?: boolean } = {},
 ) => {
-  const { allowInMemoryFallback = false } = options;
+  const { enableInMemoryFallback = false } = options;
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
 
   const databaseFuture = getIndexedDBFactory().flatMapOk((factory) => {
@@ -36,31 +36,31 @@ export const openStore = (
       return retry(() =>
         getObjectStore("readonly").flatMapOk((store) =>
           Future.all(
-            keys.map((key) => futurifyRequest("getMany", store.get(key))),
+            keys.map((key) =>
+              futurifyRequest("getMany", store.get(key))
+                .mapOk((value: unknown) => {
+                  if (!enableInMemoryFallback) {
+                    return value;
+                  }
+                  if (typeof value === "undefined") {
+                    return inMemoryStore.get(key);
+                  }
+
+                  inMemoryStore.set(key, value);
+                  return value;
+                })
+                .mapErrorToResult((error) =>
+                  enableInMemoryFallback
+                    ? Result.Ok(inMemoryStore.get(key))
+                    : Result.Error(error),
+                ),
+            ),
           ).map((results) => Result.all(results)),
         ),
       )
-        .mapOk((data: unknown[]) => {
-          const values = data.map((value: unknown, index) => {
-            const key = keys[index];
-
-            if (typeof key === "undefined") {
-              return value;
-            }
-            if (typeof value === "undefined" && allowInMemoryFallback) {
-              return inMemoryStore.get(key);
-            }
-            if (allowInMemoryFallback) {
-              inMemoryStore.set(key, value);
-            }
-
-            return value;
-          });
-
-          return zipToObject(keys, values);
-        })
+        .mapOk((values) => zipToObject(keys, values))
         .mapErrorToResult((error) => {
-          if (!allowInMemoryFallback) {
+          if (!enableInMemoryFallback) {
             return Result.Error(error);
           }
 
@@ -80,7 +80,7 @@ export const openStore = (
           return futurifyTransaction("setMany", store.transaction);
         }),
       ).tap(() => {
-        if (allowInMemoryFallback) {
+        if (enableInMemoryFallback) {
           entries.forEach(([key, value]) => {
             inMemoryStore.set(key, value);
           });
@@ -95,7 +95,7 @@ export const openStore = (
           return futurifyTransaction("clear", store.transaction);
         }),
       ).tapOk(() => {
-        if (allowInMemoryFallback) {
+        if (enableInMemoryFallback) {
           inMemoryStore.clear();
         }
       });
