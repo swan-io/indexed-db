@@ -1,5 +1,4 @@
 import { Result } from "@swan-io/boxed";
-import { IDBFactory } from "fake-indexeddb";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { rewriteError } from "../src/errors";
 import { getIndexedDBFactory } from "../src/factory";
@@ -45,7 +44,7 @@ describe("Safari 12.2", () => {
 describe("Safari 14.6 (unresponsive)", () => {
   beforeAll(() => {
     vi.stubGlobal("indexedDB", {
-      ...new IDBFactory(),
+      ...indexedDB,
       databases: () => new Promise<IDBDatabaseInfo[]>(() => {}),
     });
 
@@ -72,7 +71,7 @@ describe("Safari 14.6 (unresponsive at first)", () => {
     let attempts = 0;
 
     vi.stubGlobal("indexedDB", {
-      ...new IDBFactory(),
+      ...indexedDB,
       databases: () =>
         new Promise<IDBDatabaseInfo[]>((resolve) => {
           attempts++;
@@ -97,8 +96,6 @@ describe("Safari 14.6 (unresponsive at first)", () => {
 
 describe("Safari 14.6 (responsive)", () => {
   beforeAll(() => {
-    vi.stubGlobal("indexedDB", new IDBFactory());
-
     vi.stubGlobal("navigator", {
       userAgent: userAgents["14.6"],
     });
@@ -119,7 +116,7 @@ describe("Safari 14.6 (responsive, but too late)", () => {
     let attempts = 0;
 
     vi.stubGlobal("indexedDB", {
-      ...new IDBFactory(),
+      ...indexedDB,
       databases: () =>
         new Promise<IDBDatabaseInfo[]>((resolve) => {
           attempts++;
