@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { rewriteError } from "../../src/errors";
+import { rewriteError } from "../src/errors";
 
 test("rewriteError returns an unknown Error if null is passed", () => {
   const rewrittenError = rewriteError(null);

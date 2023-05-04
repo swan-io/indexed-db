@@ -1,8 +1,8 @@
 import { Result } from "@swan-io/boxed";
 import { IDBFactory } from "fake-indexeddb";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { rewriteError } from "../../src/errors";
-import { getIndexedDBFactory } from "../../src/factory";
+import { rewriteError } from "../src/errors";
+import { getIndexedDBFactory } from "../src/factory";
 
 const userAgents = {
   "12.2":

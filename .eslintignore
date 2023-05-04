@@ -1,5 +1,4 @@
 .eslintrc.js
 dist/
-playwright.config.ts
 tests/
 vite.config.ts
