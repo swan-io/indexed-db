@@ -40,3 +40,43 @@ store
     console.log("✅");
   });
 ```
+
+## API
+
+### openStore
+
+Opens a database, create a store if needed and returns methods to manipulate it.
+
+```ts
+const store = await openStore("database", "store", {
+  enableInMemoryFallback: true, // will save data in-memory in cases of read failures
+});
+```
+
+### getMany
+
+Get many values at once. Resolves with a record.
+
+```ts
+store
+  .getMany(["firstName", "lastName"])
+  .mapOk(({ firstName, lastName }) => console.log({ firstName, lastName }));
+```
+
+### setMany
+
+Get many key-value pairs at once.
+
+```ts
+store
+  .setMany({ firstName: "Mathieu", lastName: "Breton" })
+  .tapOk(() => console.log("✅"));
+```
+
+### clear
+
+Clear all values in the store.
+
+```ts
+store.clear().tapOk(() => console.log("✅"));
+```
