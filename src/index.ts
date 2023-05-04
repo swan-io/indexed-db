@@ -7,9 +7,18 @@ import { getInMemoryStore } from "./inMemoryStore";
 export const openStore = (
   databaseName: string,
   storeName: string,
-  options: { enableInMemoryFallback?: boolean } = {},
+  options: {
+    enableInMemoryFallback?: boolean;
+    transactionRetries?: number;
+    transactionTimeout?: number;
+  } = {},
 ) => {
-  const { enableInMemoryFallback = false } = options;
+  const {
+    enableInMemoryFallback = false,
+    transactionRetries = 3,
+    transactionTimeout = 300,
+  } = options;
+
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
 
   const databaseFuture = getIndexedDBFactory().flatMapOk((factory) => {
@@ -19,7 +28,7 @@ export const openStore = (
       request.result.createObjectStore(storeName);
     };
 
-    return futurifyRequest("openDatabase", request);
+    return futurifyRequest(request, "openDatabase", transactionTimeout);
   });
 
   const getObjectStore = (
@@ -33,11 +42,11 @@ export const openStore = (
     getMany: <T extends string>(
       keys: T[],
     ): Future<Result<Record<T, unknown>, DOMException>> => {
-      return retry(() =>
+      return retry(transactionRetries, () =>
         getObjectStore("readonly").flatMapOk((store) =>
           Future.all(
             keys.map((key) =>
-              futurifyRequest("getMany", store.get(key))
+              futurifyRequest(store.get(key), "getMany", transactionTimeout)
                 .mapOk((value: unknown) => {
                   if (!enableInMemoryFallback) {
                     return value;
@@ -74,10 +83,15 @@ export const openStore = (
     ): Future<Result<void, DOMException>> => {
       const entries = Dict.entries(object);
 
-      return retry(() =>
+      return retry(transactionRetries, () =>
         getObjectStore("readwrite").flatMapOk((store) => {
           entries.forEach(([key, value]) => store.put(value, key));
-          return futurifyTransaction("setMany", store.transaction);
+
+          return futurifyTransaction(
+            store.transaction,
+            "setMany",
+            transactionTimeout,
+          );
         }),
       ).tap(() => {
         if (enableInMemoryFallback) {
@@ -89,10 +103,15 @@ export const openStore = (
     },
 
     clear: (): Future<Result<void, DOMException>> => {
-      return retry(() =>
+      return retry(transactionRetries, () =>
         getObjectStore("readwrite").flatMapOk((store) => {
           store.clear();
-          return futurifyTransaction("clear", store.transaction);
+
+          return futurifyTransaction(
+            store.transaction,
+            "clear",
+            transactionTimeout,
+          );
         }),
       ).tapOk(() => {
         if (enableInMemoryFallback) {

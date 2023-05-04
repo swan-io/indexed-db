@@ -2,8 +2,9 @@ import { Future, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 
 export const futurifyRequest = <T>(
-  operationName: string,
   request: IDBRequest<T>,
+  operationName: string,
+  timeout: number,
 ): Future<Result<T, DOMException>> =>
   Future.make((resolve) => {
     const transaction = request.transaction;
@@ -21,7 +22,7 @@ export const futurifyRequest = <T>(
     if (transaction != null) {
       timeoutId = setTimeout(() => {
         transaction.abort();
-      }, 300);
+      }, timeout);
 
       transaction.onabort = () => {
         clearTimeout(timeoutId);
@@ -39,8 +40,9 @@ export const futurifyRequest = <T>(
   });
 
 export const futurifyTransaction = (
-  operationName: string,
   transaction: IDBTransaction,
+  operationName: string,
+  timeout: number,
 ): Future<Result<void, DOMException>> =>
   Future.make((resolve) => {
     transaction.oncomplete = () => {
@@ -54,7 +56,7 @@ export const futurifyTransaction = (
 
     const timeoutId = setTimeout(() => {
       transaction.abort();
-    }, 300);
+    }, timeout);
 
     transaction.onabort = () => {
       clearTimeout(timeoutId);

@@ -18,9 +18,7 @@ $ npm install --save @swan-io/indexed-db
 ## Quickstart
 
 ```ts
-const store = openStore("database", "store", {
-  enableInMemoryFallback: true,
-});
+const store = openStore("database", "store");
 
 store
   .setMany({
@@ -49,7 +47,9 @@ Opens a database, create a store if needed and returns methods to manipulate it.
 
 ```ts
 const store = await openStore("database", "store", {
-  enableInMemoryFallback: true, // will save data in-memory in cases of read failures
+  enableInMemoryFallback: true, // keep data in-memory in cases of read failures (default: false)
+  transactionRetries: 3, // retry failed transactions (default: 3)
+  transactionTimeout: 300, // timeout a transaction when it take too long (default: 300ms)
 });
 ```
 
