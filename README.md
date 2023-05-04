@@ -49,7 +49,7 @@ Opens a database, create a store if needed and returns methods to manipulate it.
 const store = await openStore("database", "store", {
   enableInMemoryFallback: true, // keep data in-memory in cases of read failures (default: false)
   transactionRetries: 3, // retry failed transactions (default: 3)
-  transactionTimeout: 300, // timeout a transaction when it take too long (default: 300ms)
+  transactionTimeout: 300, // timeout a transaction when it takes too long (default: 300ms)
 });
 ```
 
