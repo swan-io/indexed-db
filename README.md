@@ -80,3 +80,8 @@ Clear all values in the store.
 ```ts
 store.clear().tapOk(() => console.log("✅"));
 ```
+
+## 🙌 Acknowledgements
+
+- [firebase-js-sdk](https://github.com/firebase/firebase-js-sdk) by [@firebase](https://github.com/firebase)
+- [idb-keyval](https://github.com/jakearchibald/idb-keyval) and [safari-14-idb-fix](https://github.com/jakearchibald/safari-14-idb-fix) by [@jakearchibald](https://github.com/jakearchibald)
