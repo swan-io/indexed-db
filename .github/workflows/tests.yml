@@ -1,4 +1,4 @@
-name: End-to-end tests
+name: Tests
 
 on:
   push:
@@ -8,6 +8,7 @@ on:
 
 jobs:
   test:
+    name: Tests
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
@@ -21,9 +22,3 @@ jobs:
         run: yarn test:install-deps
       - name: Run tests
         run: yarn test:ci
-      - uses: actions/upload-artifact@v3
-        if: always()
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 30

@@ -21,6 +21,15 @@ module.exports = {
     es2022: true,
   },
 
+  overrides: [
+    {
+      files: ["*.d.ts"],
+      rules: {
+        "@typescript-eslint/consistent-type-definitions": "off",
+      },
+    },
+  ],
+
   rules: {
     curly: "error",
     "no-implicit-coercion": "error",
