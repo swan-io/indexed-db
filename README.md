@@ -64,7 +64,7 @@ store
 
 ### store.setMany
 
-Get many key-value pairs at once.
+Set many key-value pairs at once.
 
 ```ts
 store
