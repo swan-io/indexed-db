@@ -31,11 +31,13 @@ export const futurifyRequest = <T>(
         );
 
       timeoutId = setTimeout(() => {
-        Result.fromExecution(() => {
-          transaction.abort();
-        }).tapError(() => {
-          resolveAfterAbort();
-        });
+        if (request.readyState !== "done") {
+          Result.fromExecution(() => {
+            transaction.abort();
+          }).tapError(() => {
+            resolveAfterAbort();
+          });
+        }
       }, timeout);
 
       transaction.onabort = () => {
