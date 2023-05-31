@@ -21,7 +21,7 @@ test("rewriteError add context in case of InvalidStateError", () => {
     `Unable to open an IndexedDB connection. ` +
       `This could be due to running in a private browsing ` +
       `session on a browser whose private browsing ` +
-      `sessions do not support IndexedDB: NO_INITIAL_MESSAGE`,
+      `sessions do not support IndexedDB: "NO_INITIAL_MESSAGE"`,
   );
 });
 

@@ -20,13 +20,7 @@ export const futurifyRequest = <T>(
     };
 
     if (transaction != null) {
-      timeoutId = setTimeout(() => {
-        transaction.abort();
-      }, timeout);
-
-      transaction.onabort = () => {
-        clearTimeout(timeoutId);
-
+      const resolveAfterAbort = () =>
         resolve(
           Result.Error(
             new DOMException(
@@ -35,6 +29,18 @@ export const futurifyRequest = <T>(
             ),
           ),
         );
+
+      timeoutId = setTimeout(() => {
+        Result.fromExecution(() => {
+          transaction.abort();
+        }).tapError(() => {
+          resolveAfterAbort();
+        });
+      }, timeout);
+
+      transaction.onabort = () => {
+        clearTimeout(timeoutId);
+        resolveAfterAbort();
       };
     }
   });
@@ -54,13 +60,7 @@ export const futurifyTransaction = (
       resolve(Result.Error(rewriteError(transaction.error)));
     };
 
-    const timeoutId = setTimeout(() => {
-      transaction.abort();
-    }, timeout);
-
-    transaction.onabort = () => {
-      clearTimeout(timeoutId);
-
+    const resolveAfterAbort = () =>
       resolve(
         Result.Error(
           new DOMException(
@@ -69,5 +69,17 @@ export const futurifyTransaction = (
           ),
         ),
       );
+
+    const timeoutId = setTimeout(() => {
+      Result.fromExecution(() => {
+        transaction.abort();
+      }).tapError(() => {
+        resolveAfterAbort();
+      });
+    }, timeout);
+
+    transaction.onabort = () => {
+      clearTimeout(timeoutId);
+      resolveAfterAbort();
     };
   });

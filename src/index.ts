@@ -1,4 +1,5 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
+import { rewriteError } from "./errors";
 import { getIndexedDBFactory } from "./factory";
 import { futurifyRequest, futurifyTransaction } from "./futurify";
 import { retry, zipToObject } from "./helpers";
@@ -16,7 +17,7 @@ export const openStore = (
   const {
     enableInMemoryFallback = false,
     transactionRetries = 3,
-    transactionTimeout = 300,
+    transactionTimeout = 500,
   } = options;
 
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
@@ -34,8 +35,12 @@ export const openStore = (
   const getObjectStore = (
     transactionMode: IDBTransactionMode,
   ): Future<Result<IDBObjectStore, DOMException>> =>
-    databaseFuture.mapOk((database) =>
-      database.transaction(storeName, transactionMode).objectStore(storeName),
+    databaseFuture.mapOkToResult((database) =>
+      Result.fromExecution(() =>
+        database.transaction(storeName, transactionMode).objectStore(storeName),
+      ).mapError((error) =>
+        rewriteError(error instanceof DOMException ? error : null),
+      ),
     );
 
   return {
