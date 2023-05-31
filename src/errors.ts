@@ -37,7 +37,7 @@ export const rewriteError = (error: DOMException | null): DOMException => {
     if (error.message.indexOf(IOS_ERROR) >= 0) {
       return deriveError(
         error,
-        `IndexedDB has thrown '${IOS_ERROR}'. ` +
+        `IndexedDB has thrown "${IOS_ERROR}". ` +
           `This is likely due to an unavoidable bug in iOS ` +
           `(https://bugs.webkit.org/show_bug.cgi?id=197050).`,
       );
@@ -51,7 +51,7 @@ export const rewriteError = (error: DOMException | null): DOMException => {
       `Unable to open an IndexedDB connection. ` +
         `This could be due to running in a private browsing ` +
         `session on a browser whose private browsing ` +
-        `sessions do not support IndexedDB: ${error.message}`,
+        `sessions do not support IndexedDB: "${error.message}"`,
     );
   }
 

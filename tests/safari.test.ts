@@ -34,7 +34,7 @@ describe("Safari 12.2", () => {
     expect(rewrittenError.stack).toStrictEqual(ios12Error.stack);
 
     expect(rewrittenError.message).toBe(
-      `IndexedDB has thrown 'An internal error was encountered in the Indexed Database server'. ` +
+      `IndexedDB has thrown "An internal error was encountered in the Indexed Database server". ` +
         `This is likely due to an unavoidable bug in iOS ` +
         `(https://bugs.webkit.org/show_bug.cgi?id=197050).`,
     );
