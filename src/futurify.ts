@@ -7,23 +7,26 @@ export const futurifyRequest = <T>(
   timeout: number,
 ): Future<Result<T, DOMException>> =>
   Future.make((resolve) => {
-    const transaction = request.transaction;
-    let timeoutId: NodeJS.Timeout | undefined;
-
     request.onsuccess = () => {
-      clearTimeout(timeoutId);
       resolve(Result.Ok(request.result));
     };
     request.onerror = () => {
-      clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(request.error)));
     };
 
+    const transaction = request.transaction;
+
     if (transaction != null) {
-      timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         transaction.abort();
       }, timeout);
 
+      transaction.oncomplete = () => {
+        clearTimeout(timeoutId);
+      };
+      transaction.onerror = () => {
+        clearTimeout(timeoutId);
+      };
       transaction.onabort = () => {
         clearTimeout(timeoutId);
 
@@ -45,6 +48,10 @@ export const futurifyTransaction = (
   timeout: number,
 ): Future<Result<void, DOMException>> =>
   Future.make((resolve) => {
+    const timeoutId = setTimeout(() => {
+      transaction.abort();
+    }, timeout);
+
     transaction.oncomplete = () => {
       clearTimeout(timeoutId);
       resolve(Result.Ok(undefined));
@@ -53,11 +60,6 @@ export const futurifyTransaction = (
       clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(transaction.error)));
     };
-
-    const timeoutId = setTimeout(() => {
-      transaction.abort();
-    }, timeout);
-
     transaction.onabort = () => {
       clearTimeout(timeoutId);
 
