@@ -17,7 +17,7 @@ export const openStore = (
   const {
     enableInMemoryFallback = false,
     transactionRetries = 3,
-    transactionTimeout = 300,
+    transactionTimeout = 500,
   } = options;
 
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
