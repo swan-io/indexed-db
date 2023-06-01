@@ -6,9 +6,7 @@ import { Future, Result } from "@swan-io/boxed";
  * @see https://bugs.webkit.org/show_bug.cgi?id=226547
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-export const getIndexedDBFactory = (): Future<
-  Result<IDBFactory, DOMException>
-> => {
+export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (indexedDB == null) {
     return Future.value(
@@ -32,7 +30,7 @@ export const getIndexedDBFactory = (): Future<
   let remainingAttempts = 10;
 
   return Future.make((resolve) => {
-    const tryToAccessIndexedDB = () => {
+    const accessIndexedDB = () => {
       remainingAttempts = remainingAttempts - 1;
 
       if (remainingAttempts > 0) {
@@ -54,7 +52,7 @@ export const getIndexedDBFactory = (): Future<
       }
     };
 
-    intervalId = setInterval(tryToAccessIndexedDB, 100);
-    tryToAccessIndexedDB();
+    intervalId = setInterval(accessIndexedDB, 100);
+    accessIndexedDB();
   });
 };

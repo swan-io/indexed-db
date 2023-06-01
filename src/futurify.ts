@@ -1,9 +1,8 @@
 import { Future, Result } from "@swan-io/boxed";
 import { rewriteError } from "./errors";
 
-export const futurifyRequest = <T>(
+export const futurify = <T>(
   request: IDBRequest<T>,
-  operationName: string,
   timeout: number,
 ): Future<Result<T, DOMException>> =>
   Future.make((resolve) => {
@@ -20,68 +19,14 @@ export const futurifyRequest = <T>(
     };
 
     if (transaction != null) {
-      const resolveAfterAbort = () =>
-        resolve(
-          Result.Error(
-            new DOMException(
-              `${operationName} IndexedDB request timed out`,
-              "TimeoutError",
-            ),
-          ),
-        );
-
       timeoutId = setTimeout(() => {
         if (request.readyState !== "done") {
-          Result.fromExecution(() => {
+          try {
+            // Thrown if the transaction has already been committed or aborted
+            // and triggers onerror listener with an AbortError DOMException.
             transaction.abort();
-          }).tapError(() => {
-            resolveAfterAbort();
-          });
+          } catch {} // eslint-disable-line
         }
       }, timeout);
-
-      transaction.onabort = () => {
-        clearTimeout(timeoutId);
-        resolveAfterAbort();
-      };
     }
-  });
-
-export const futurifyTransaction = (
-  transaction: IDBTransaction,
-  operationName: string,
-  timeout: number,
-): Future<Result<void, DOMException>> =>
-  Future.make((resolve) => {
-    transaction.oncomplete = () => {
-      clearTimeout(timeoutId);
-      resolve(Result.Ok(undefined));
-    };
-    transaction.onerror = () => {
-      clearTimeout(timeoutId);
-      resolve(Result.Error(rewriteError(transaction.error)));
-    };
-
-    const resolveAfterAbort = () =>
-      resolve(
-        Result.Error(
-          new DOMException(
-            `${operationName} IndexedDB transaction timed out`,
-            "TimeoutError",
-          ),
-        ),
-      );
-
-    const timeoutId = setTimeout(() => {
-      Result.fromExecution(() => {
-        transaction.abort();
-      }).tapError(() => {
-        resolveAfterAbort();
-      });
-    }, timeout);
-
-    transaction.onabort = () => {
-      clearTimeout(timeoutId);
-      resolveAfterAbort();
-    };
   });
