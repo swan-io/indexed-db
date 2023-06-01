@@ -50,8 +50,8 @@ export const openStore = (
   return {
     getMany: <T extends string>(
       keys: T[],
-    ): Future<Result<Record<T, unknown>, DOMException>> =>
-      retry(transactionRetries, () =>
+    ): Future<Result<Record<T, unknown>, DOMException>> => {
+      return retry(transactionRetries, () =>
         openDatabase(databaseName, storeName, transactionTimeout)
           .flatMapOk((database) => getStore(database, storeName, "readonly"))
           .flatMapOk((store) =>
@@ -86,7 +86,8 @@ export const openStore = (
 
           const values = keys.map((key) => inMemoryStore.get(key));
           return Result.Ok(zipToObject(keys, values));
-        }),
+        });
+    },
 
     setMany: (
       object: Record<string, unknown>,
@@ -114,8 +115,8 @@ export const openStore = (
         });
     },
 
-    clear: (): Future<Result<undefined, DOMException>> =>
-      retry(transactionRetries, () =>
+    clear: (): Future<Result<undefined, DOMException>> => {
+      return retry(transactionRetries, () =>
         openDatabase(databaseName, storeName, transactionTimeout)
           .flatMapOk((database) => getStore(database, storeName, "readwrite"))
           .flatMapOk((store) => futurify(store.clear(), transactionTimeout)),
@@ -123,6 +124,7 @@ export const openStore = (
         if (enableInMemoryFallback) {
           inMemoryStore.clear();
         }
-      }),
+      });
+    },
   };
 };
