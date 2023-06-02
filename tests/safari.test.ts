@@ -1,7 +1,7 @@
 import { Result } from "@swan-io/boxed";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { rewriteError } from "../src/errors";
-import { getIndexedDBFactory } from "../src/factory";
+import { getFactory } from "../src/wrappers";
 
 const userAgents = {
   "12.2":
@@ -57,8 +57,8 @@ describe("Safari 14.6 (unresponsive)", () => {
     vi.unstubAllGlobals();
   });
 
-  test("getIndexedDBFactory resolve with error if indexedDB.databases hangs forever", async () => {
-    const result = await getIndexedDBFactory();
+  test("getFactory resolve with error if indexedDB.databases hangs forever", async () => {
+    const result = await getFactory();
 
     expect(result).toStrictEqual(
       Result.Error(new DOMException("Couldn't list IndexedDB databases")),
@@ -88,8 +88,8 @@ describe("Safari 14.6 (unresponsive at first)", () => {
     vi.unstubAllGlobals();
   });
 
-  test("getIndexedDBFactory resolve with ok if indexedDB.databases resolve after a while", async () => {
-    const result = await getIndexedDBFactory();
+  test("getFactory resolve with ok if indexedDB.databases resolve after a while", async () => {
+    const result = await getFactory();
     expect(result).toStrictEqual(Result.Ok(indexedDB));
   });
 });
@@ -105,8 +105,8 @@ describe("Safari 14.6 (responsive)", () => {
     vi.unstubAllGlobals();
   });
 
-  test("getIndexedDBFactory resolve with ok if indexedDB.databases resolve immediately", async () => {
-    const result = await getIndexedDBFactory();
+  test("getFactory resolve with ok if indexedDB.databases resolve immediately", async () => {
+    const result = await getFactory();
     expect(result).toStrictEqual(Result.Ok(indexedDB));
   });
 });
@@ -133,8 +133,8 @@ describe("Safari 14.6 (responsive, but too late)", () => {
     vi.unstubAllGlobals();
   });
 
-  test("getIndexedDBFactory resolve with error if indexedDB.databases hangs for too long", async () => {
-    const result = await getIndexedDBFactory();
+  test("getFactory resolve with error if indexedDB.databases hangs for too long", async () => {
+    const result = await getFactory();
 
     expect(result).toStrictEqual(
       Result.Error(new DOMException("Couldn't list IndexedDB databases")),

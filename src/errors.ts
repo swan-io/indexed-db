@@ -57,3 +57,7 @@ export const rewriteError = (error: DOMException | null): DOMException => {
 
   return error;
 };
+
+export const isDatabaseClosedError = (error: DOMException) =>
+  error.message.indexOf("The database connection is closing") >= 0 ||
+  error.message.indexOf("Can't start a transaction on a closed database") >= 0;
