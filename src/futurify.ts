@@ -21,11 +21,9 @@ export const futurify = <T>(
     if (transaction != null) {
       timeoutId = setTimeout(() => {
         if (request.readyState !== "done") {
-          try {
-            // Triggers onerror listener with an AbortError DOMException.
-            // Throw if the transaction has already been committed or aborted.
-            transaction.abort();
-          } catch {} // eslint-disable-line
+          // Throws if the transaction has already been committed or aborted.
+          // Triggers onerror listener with an AbortError DOMException.
+          Result.fromExecution(() => transaction.abort());
         }
       }, timeout);
     }
