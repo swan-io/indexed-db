@@ -1,34 +1,8 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
-import { getFactory } from "./factory";
 import { futurify } from "./futurify";
 import { retry, zipToObject } from "./helpers";
 import { getInMemoryStore } from "./inMemoryStore";
-
-const openDatabase = (
-  databaseName: string,
-  storeName: string,
-  timeout: number,
-): Future<Result<IDBDatabase, DOMException>> =>
-  getFactory().flatMapOk((factory) => {
-    const request = factory.open(databaseName);
-
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(storeName);
-    };
-
-    return futurify(request, timeout);
-  });
-
-const getStore = (
-  database: IDBDatabase,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
-): Future<Result<IDBObjectStore, DOMException>> =>
-  Future.value(
-    Result.fromExecution<IDBObjectStore, DOMException>(() =>
-      database.transaction(storeName, transactionMode).objectStore(storeName),
-    ),
-  );
+import { getStore, openDatabase } from "./wrappers";
 
 export const openStore = (
   databaseName: string,
@@ -45,14 +19,28 @@ export const openStore = (
     transactionTimeout = 500,
   } = options;
 
+  const databaseFuture = openDatabase(
+    databaseName,
+    storeName,
+    transactionTimeout,
+  );
+
   const inMemoryStore = getInMemoryStore(databaseName, storeName);
 
   return {
     getMany: <T extends string>(
       keys: T[],
     ): Future<Result<Record<T, unknown>, DOMException>> => {
-      return openDatabase(databaseName, storeName, transactionTimeout)
-        .flatMapOk((database) => getStore(database, storeName, "readonly"))
+      return databaseFuture
+        .flatMapOk((database) =>
+          getStore(
+            database,
+            databaseName,
+            storeName,
+            "readonly",
+            transactionTimeout,
+          ),
+        )
         .flatMapOk((store) =>
           Future.all(
             keys.map((key) =>
@@ -94,8 +82,16 @@ export const openStore = (
     ): Future<Result<undefined, DOMException>> => {
       const entries = Dict.entries(object);
 
-      return openDatabase(databaseName, storeName, transactionTimeout)
-        .flatMapOk((database) => getStore(database, storeName, "readwrite"))
+      return databaseFuture
+        .flatMapOk((database) =>
+          getStore(
+            database,
+            databaseName,
+            storeName,
+            "readwrite",
+            transactionTimeout,
+          ),
+        )
         .flatMapOk((store) =>
           Future.all(
             entries.map(([key, value]) =>
@@ -116,8 +112,16 @@ export const openStore = (
     },
 
     clear: (): Future<Result<undefined, DOMException>> => {
-      return openDatabase(databaseName, storeName, transactionTimeout)
-        .flatMapOk((database) => getStore(database, storeName, "readwrite"))
+      return databaseFuture
+        .flatMapOk((database) =>
+          getStore(
+            database,
+            databaseName,
+            storeName,
+            "readwrite",
+            transactionTimeout,
+          ),
+        )
         .flatMapOk((store) =>
           retry(transactionRetries, () =>
             futurify(store.clear(), transactionTimeout),

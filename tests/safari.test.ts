@@ -1,7 +1,7 @@
 import { Result } from "@swan-io/boxed";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
 import { rewriteError } from "../src/errors";
-import { getFactory } from "../src/factory";
+import { getFactory } from "../src/wrappers";
 
 const userAgents = {
   "12.2":

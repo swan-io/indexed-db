@@ -1,4 +1,6 @@
 import { Future, Result } from "@swan-io/boxed";
+import { isDatabaseClosedError } from "./errors";
+import { futurify } from "./futurify";
 
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
@@ -56,3 +58,44 @@ export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
     accessIndexedDB();
   });
 };
+
+export const openDatabase = (
+  databaseName: string,
+  storeName: string,
+  timeout: number,
+): Future<Result<IDBDatabase, DOMException>> =>
+  getFactory().flatMapOk((factory) => {
+    const request = factory.open(databaseName);
+
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(storeName);
+    };
+
+    return futurify(request, timeout);
+  });
+
+const getStoreRaw = (
+  database: IDBDatabase,
+  storeName: string,
+  transactionMode: IDBTransactionMode,
+): Future<Result<IDBObjectStore, DOMException>> =>
+  Future.value(
+    Result.fromExecution<IDBObjectStore, DOMException>(() =>
+      database.transaction(storeName, transactionMode).objectStore(storeName),
+    ),
+  );
+
+export const getStore = (
+  database: IDBDatabase,
+  databaseName: string,
+  storeName: string,
+  transactionMode: IDBTransactionMode,
+  timeout: number,
+): Future<Result<IDBObjectStore, DOMException>> =>
+  getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
+    !isDatabaseClosedError(error)
+      ? Future.value(Result.Error(error))
+      : openDatabase(databaseName, storeName, timeout).flatMapOk((database) =>
+          getStoreRaw(database, storeName, transactionMode),
+        ),
+  );

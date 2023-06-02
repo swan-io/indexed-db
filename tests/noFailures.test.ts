@@ -9,7 +9,7 @@ afterEach(async () => {
 });
 
 test(
-  "happy path with no failures",
+  "Happy path with no failures",
   async () => {
     expect(await store.setMany({ A: true })).toStrictEqual(
       Result.Ok(undefined),
