@@ -64,15 +64,21 @@ export const openDatabase = (
   storeName: string,
   timeout: number,
 ): Future<Result<IDBDatabase, DOMException>> =>
-  getFactory().flatMapOk((factory) => {
-    const request = factory.open(databaseName);
+  getFactory()
+    .flatMapOk((factory) =>
+      Future.value(
+        Result.fromExecution<IDBOpenDBRequest, DOMException>(() =>
+          factory.open(databaseName),
+        ),
+      ),
+    )
+    .flatMapOk((request) => {
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(storeName);
+      };
 
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(storeName);
-    };
-
-    return futurify(request, timeout);
-  });
+      return futurify(request, timeout);
+    });
 
 const getStoreRaw = (
   database: IDBDatabase,
