@@ -23,8 +23,8 @@ describe("Safari 12.2", () => {
 
   test("rewriteError add context in case of an unknown iOS 12.x error", () => {
     const ios12Error = createError(
-      "An internal error was encountered in the Indexed Database server",
       "UnknownError",
+      "An internal error was encountered in the Indexed Database server",
     );
 
     const rewrittenError = rewriteError(ios12Error);
