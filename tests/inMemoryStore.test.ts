@@ -1,6 +1,7 @@
 import { Result } from "@swan-io/boxed";
 import { afterAll, beforeAll, expect, test, vi } from "vitest";
 import { openStore } from "../src";
+import { createError } from "../src/errors";
 
 beforeAll(() => {
   vi.stubGlobal("indexedDB", undefined);
@@ -16,7 +17,7 @@ test("API stays usable thanks to in-memory store", async () => {
   });
 
   expect(await store.setMany({ A: true })).toStrictEqual(
-    Result.Error(new DOMException("indexedDB global doesn't exist")),
+    Result.Error(createError("indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(
@@ -24,7 +25,7 @@ test("API stays usable thanks to in-memory store", async () => {
   );
 
   expect(await store.setMany({ B: true })).toStrictEqual(
-    Result.Error(new DOMException("indexedDB global doesn't exist")),
+    Result.Error(createError("indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(
@@ -33,7 +34,7 @@ test("API stays usable thanks to in-memory store", async () => {
 
   // in-memory store will not be wiped if indexedDB clear failed
   expect(await store.clear()).toStrictEqual(
-    Result.Error(new DOMException("indexedDB global doesn't exist")),
+    Result.Error(createError("indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(

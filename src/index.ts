@@ -30,7 +30,7 @@ export const openStore = (
   return {
     getMany: <T extends string>(
       keys: T[],
-    ): Future<Result<Record<T, unknown>, DOMException>> => {
+    ): Future<Result<Record<T, unknown>, Error>> => {
       return retry(transactionRetries, () =>
         databaseFuture
           .flatMapOk((database) =>
@@ -79,7 +79,7 @@ export const openStore = (
 
     setMany: (
       object: Record<string, unknown>,
-    ): Future<Result<undefined, DOMException>> => {
+    ): Future<Result<undefined, Error>> => {
       const entries = Dict.entries(object);
 
       return retry(transactionRetries, () =>
@@ -111,7 +111,7 @@ export const openStore = (
         });
     },
 
-    clear: (): Future<Result<undefined, DOMException>> => {
+    clear: (): Future<Result<undefined, Error>> => {
       return retry(transactionRetries, () =>
         databaseFuture
           .flatMapOk((database) =>

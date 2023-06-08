@@ -1,5 +1,5 @@
 import { Future, Result } from "@swan-io/boxed";
-import { isDatabaseClosedError } from "./errors";
+import { createError, isDatabaseClosedError } from "./errors";
 import { futurify } from "./futurify";
 
 /**
@@ -8,12 +8,12 @@ import { futurify } from "./futurify";
  * @see https://bugs.webkit.org/show_bug.cgi?id=226547
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
+export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (indexedDB == null) {
     return Future.value(
       Result.Error(
-        new DOMException("indexedDB global doesn't exist", "UnknownError"),
+        createError("indexedDB global doesn't exist", "UnknownError"),
       ),
     );
   }
@@ -45,10 +45,7 @@ export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
 
         resolve(
           Result.Error(
-            new DOMException(
-              "Couldn't list IndexedDB databases",
-              "TimeoutError",
-            ),
+            createError("Couldn't list IndexedDB databases", "TimeoutError"),
           ),
         );
       }
@@ -63,11 +60,11 @@ export const openDatabase = (
   databaseName: string,
   storeName: string,
   timeout: number,
-): Future<Result<IDBDatabase, DOMException>> =>
+): Future<Result<IDBDatabase, Error>> =>
   getFactory()
     .flatMapOk((factory) =>
       Future.value(
-        Result.fromExecution<IDBOpenDBRequest, DOMException>(() =>
+        Result.fromExecution<IDBOpenDBRequest, Error>(() =>
           factory.open(databaseName),
         ),
       ),
@@ -84,9 +81,9 @@ const getStoreRaw = (
   database: IDBDatabase,
   storeName: string,
   transactionMode: IDBTransactionMode,
-): Future<Result<IDBObjectStore, DOMException>> =>
+): Future<Result<IDBObjectStore, Error>> =>
   Future.value(
-    Result.fromExecution<IDBObjectStore, DOMException>(() =>
+    Result.fromExecution<IDBObjectStore, Error>(() =>
       database.transaction(storeName, transactionMode).objectStore(storeName),
     ),
   );
@@ -97,7 +94,7 @@ export const getStore = (
   storeName: string,
   transactionMode: IDBTransactionMode,
   timeout: number,
-): Future<Result<IDBObjectStore, DOMException>> =>
+): Future<Result<IDBObjectStore, Error>> =>
   getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
     !isDatabaseClosedError(error)
       ? Future.value(Result.Error(error))

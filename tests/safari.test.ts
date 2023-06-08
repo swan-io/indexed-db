@@ -1,6 +1,6 @@
 import { Result } from "@swan-io/boxed";
 import { afterAll, beforeAll, describe, expect, test, vi } from "vitest";
-import { rewriteError } from "../src/errors";
+import { createError, rewriteError } from "../src/errors";
 import { getFactory } from "../src/wrappers";
 
 const userAgents = {
@@ -22,14 +22,14 @@ describe("Safari 12.2", () => {
   });
 
   test("rewriteError add context in case of an unknown iOS 12.x error", () => {
-    const ios12Error = new DOMException(
+    const ios12Error = createError(
       "An internal error was encountered in the Indexed Database server",
       "UnknownError",
     );
 
     const rewrittenError = rewriteError(ios12Error);
 
-    expect(rewrittenError).toBeInstanceOf(DOMException);
+    expect(rewrittenError).toBeInstanceOf(Error);
     expect(rewrittenError.name).toBe("UnknownError");
     expect(rewrittenError.stack).toStrictEqual(ios12Error.stack);
 
@@ -61,7 +61,7 @@ describe("Safari 14.6 (unresponsive)", () => {
     const result = await getFactory();
 
     expect(result).toStrictEqual(
-      Result.Error(new DOMException("Couldn't list IndexedDB databases")),
+      Result.Error(createError("Couldn't list IndexedDB databases")),
     );
   });
 });
@@ -137,7 +137,7 @@ describe("Safari 14.6 (responsive, but too late)", () => {
     const result = await getFactory();
 
     expect(result).toStrictEqual(
-      Result.Error(new DOMException("Couldn't list IndexedDB databases")),
+      Result.Error(createError("Couldn't list IndexedDB databases")),
     );
   });
 });

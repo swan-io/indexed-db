@@ -4,7 +4,7 @@ import { rewriteError } from "./errors";
 export const futurify = <T>(
   request: IDBRequest<T>,
   timeout: number,
-): Future<Result<T, DOMException>> =>
+): Future<Result<T, Error>> =>
   Future.make((resolve) => {
     const transaction = request.transaction;
     let timeoutId: NodeJS.Timeout | undefined;
@@ -23,7 +23,7 @@ export const futurify = <T>(
         if (request.readyState !== "done") {
           // Throws if the transaction has already been committed or aborted.
           // Triggers onerror listener with an AbortError DOMException.
-          Result.fromExecution(() => transaction.abort());
+          Result.fromExecution<void, Error>(() => transaction.abort());
         }
       }, timeout);
     }
