@@ -15,7 +15,7 @@ export const openStore = (
 ) => {
   const {
     enableInMemoryFallback = false,
-    transactionRetries = 3,
+    transactionRetries = 2,
     transactionTimeout = 500,
   } = options;
 
