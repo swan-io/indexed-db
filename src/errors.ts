@@ -11,11 +11,14 @@ const iOSVersion = Lazy(() => {
     : -1;
 });
 
-const deriveError = (
-  originalError: DOMException,
-  newMessage: string,
-): DOMException => {
-  const newError = new DOMException(newMessage, originalError.name);
+export const createError = (name: string, message: string): Error => {
+  const error = new Error(message);
+  error.name = name;
+  return error;
+};
+
+const deriveError = (originalError: Error, newMessage: string): Error => {
+  const newError = createError(originalError.name, newMessage);
 
   if (originalError.stack != null) {
     newError.stack = originalError.stack;
@@ -24,9 +27,9 @@ const deriveError = (
   return newError;
 };
 
-export const rewriteError = (error: DOMException | null): DOMException => {
+export const rewriteError = (error: Error | null): Error => {
   if (error == null) {
-    return new DOMException("Unknown IndexedDB error", "UnknownError");
+    return createError("UnknownError", "Unknown IndexedDB error");
   }
 
   // https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L915
@@ -58,6 +61,6 @@ export const rewriteError = (error: DOMException | null): DOMException => {
   return error;
 };
 
-export const isDatabaseClosedError = (error: DOMException) =>
+export const isDatabaseClosedError = (error: Error) =>
   error.message.indexOf("The database connection is closing") >= 0 ||
   error.message.indexOf("Can't start a transaction on a closed database") >= 0;

@@ -1,5 +1,5 @@
 import { Future, Result } from "@swan-io/boxed";
-import { isDatabaseClosedError } from "./errors";
+import { createError, isDatabaseClosedError } from "./errors";
 import { futurify } from "./futurify";
 
 /**
@@ -8,12 +8,12 @@ import { futurify } from "./futurify";
  * @see https://bugs.webkit.org/show_bug.cgi?id=226547
  * @see https://github.com/jakearchibald/safari-14-idb-fix
  */
-export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
+export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (indexedDB == null) {
     return Future.value(
       Result.Error(
-        new DOMException("indexedDB global doesn't exist", "UnknownError"),
+        createError("UnknownError", "indexedDB global doesn't exist"),
       ),
     );
   }
@@ -45,10 +45,7 @@ export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
 
         resolve(
           Result.Error(
-            new DOMException(
-              "Couldn't list IndexedDB databases",
-              "TimeoutError",
-            ),
+            createError("TimeoutError", "Couldn't list IndexedDB databases"),
           ),
         );
       }
@@ -62,25 +59,30 @@ export const getFactory = (): Future<Result<IDBFactory, DOMException>> => {
 export const openDatabase = (
   databaseName: string,
   storeName: string,
-  timeout: number,
-): Future<Result<IDBDatabase, DOMException>> =>
-  getFactory().flatMapOk((factory) => {
-    const request = factory.open(databaseName);
+): Future<Result<IDBDatabase, Error>> =>
+  getFactory()
+    .flatMapOk((factory) =>
+      Future.value(
+        Result.fromExecution<IDBOpenDBRequest, Error>(() =>
+          factory.open(databaseName),
+        ),
+      ),
+    )
+    .flatMapOk((request) => {
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(storeName);
+      };
 
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore(storeName);
-    };
-
-    return futurify(request, timeout);
-  });
+      return futurify(request, "openDatabase", 1000);
+    });
 
 const getStoreRaw = (
   database: IDBDatabase,
   storeName: string,
   transactionMode: IDBTransactionMode,
-): Future<Result<IDBObjectStore, DOMException>> =>
+): Future<Result<IDBObjectStore, Error>> =>
   Future.value(
-    Result.fromExecution<IDBObjectStore, DOMException>(() =>
+    Result.fromExecution<IDBObjectStore, Error>(() =>
       database.transaction(storeName, transactionMode).objectStore(storeName),
     ),
   );
@@ -90,12 +92,11 @@ export const getStore = (
   databaseName: string,
   storeName: string,
   transactionMode: IDBTransactionMode,
-  timeout: number,
-): Future<Result<IDBObjectStore, DOMException>> =>
+): Future<Result<IDBObjectStore, Error>> =>
   getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
     !isDatabaseClosedError(error)
       ? Future.value(Result.Error(error))
-      : openDatabase(databaseName, storeName, timeout).flatMapOk((database) =>
+      : openDatabase(databaseName, storeName).flatMapOk((database) =>
           getStoreRaw(database, storeName, transactionMode),
         ),
   );

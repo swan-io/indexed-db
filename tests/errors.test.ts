@@ -1,19 +1,19 @@
 import { expect, test } from "vitest";
-import { rewriteError } from "../src/errors";
+import { createError, rewriteError } from "../src/errors";
 
 test("rewriteError returns an unknown Error if null is passed", () => {
   const rewrittenError = rewriteError(null);
 
-  expect(rewrittenError).toBeInstanceOf(DOMException);
+  expect(rewrittenError).toBeInstanceOf(Error);
   expect(rewrittenError.name).toBe("UnknownError");
   expect(rewrittenError.message).toBe("Unknown IndexedDB error");
 });
 
 test("rewriteError add context in case of InvalidStateError", () => {
-  const error = new DOMException("NO_INITIAL_MESSAGE", "InvalidStateError");
+  const error = createError("InvalidStateError", "NO_INITIAL_MESSAGE");
   const rewrittenError = rewriteError(error);
 
-  expect(rewrittenError).toBeInstanceOf(DOMException);
+  expect(rewrittenError).toBeInstanceOf(Error);
   expect(rewrittenError.name).toBe("InvalidStateError");
   expect(error.stack).toStrictEqual(rewrittenError.stack);
 
@@ -26,14 +26,14 @@ test("rewriteError add context in case of InvalidStateError", () => {
 });
 
 test("rewriteError does nothing in case it seems to be an iOS 12.x error, but the platform doesn't match", () => {
-  const error = new DOMException(
-    "An internal error was encountered in the Indexed Database server",
+  const error = createError(
     "UnknownError",
+    "An internal error was encountered in the Indexed Database server",
   );
 
   const rewrittenError = rewriteError(error);
 
-  expect(rewrittenError).toBeInstanceOf(DOMException);
+  expect(rewrittenError).toBeInstanceOf(Error);
   expect(rewrittenError.name).toBe("UnknownError");
   expect(error.stack).toStrictEqual(rewrittenError.stack);
 
