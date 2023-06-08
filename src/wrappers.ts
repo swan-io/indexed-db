@@ -59,7 +59,6 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
 export const openDatabase = (
   databaseName: string,
   storeName: string,
-  timeout: number,
 ): Future<Result<IDBDatabase, Error>> =>
   getFactory()
     .flatMapOk((factory) =>
@@ -74,7 +73,7 @@ export const openDatabase = (
         request.result.createObjectStore(storeName);
       };
 
-      return futurify(request, timeout);
+      return futurify(request, "openDatabase", 1000);
     });
 
 const getStoreRaw = (
@@ -93,12 +92,11 @@ export const getStore = (
   databaseName: string,
   storeName: string,
   transactionMode: IDBTransactionMode,
-  timeout: number,
 ): Future<Result<IDBObjectStore, Error>> =>
   getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
     !isDatabaseClosedError(error)
       ? Future.value(Result.Error(error))
-      : openDatabase(databaseName, storeName, timeout).flatMapOk((database) =>
+      : openDatabase(databaseName, storeName).flatMapOk((database) =>
           getStoreRaw(database, storeName, transactionMode),
         ),
   );

@@ -1,13 +1,36 @@
 import { Future, Result } from "@swan-io/boxed";
-import { rewriteError } from "./errors";
+import { createError, rewriteError } from "./errors";
 
 export const futurify = <T>(
   request: IDBRequest<T>,
+  operationName: string,
   timeout: number,
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
     const transaction = request.transaction;
-    let timeoutId: NodeJS.Timeout | undefined;
+
+    const timeoutId = setTimeout(() => {
+      if (request.readyState === "done") {
+        return; // request has already been aborted
+      }
+
+      if (transaction == null) {
+        resolve(
+          Result.Error(
+            createError(
+              "TimeoutError",
+              `${operationName} IndexedDB request timed out`,
+            ),
+          ),
+        );
+      } else {
+        // Throws if the transaction has already been committed or aborted.
+        // Triggers onerror listener with an AbortError DOMException.
+        Result.fromExecution<void, Error>(() => transaction.abort()).tapError(
+          (error) => resolve(Result.Error(error)),
+        );
+      }
+    }, timeout);
 
     request.onsuccess = () => {
       clearTimeout(timeoutId);
@@ -17,14 +40,4 @@ export const futurify = <T>(
       clearTimeout(timeoutId);
       resolve(Result.Error(rewriteError(request.error)));
     };
-
-    if (transaction != null) {
-      timeoutId = setTimeout(() => {
-        if (request.readyState !== "done") {
-          // Throws if the transaction has already been committed or aborted.
-          // Triggers onerror listener with an AbortError DOMException.
-          Result.fromExecution<void, Error>(() => transaction.abort());
-        }
-      }, timeout);
-    }
   });
