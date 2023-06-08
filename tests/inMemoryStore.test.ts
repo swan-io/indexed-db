@@ -17,7 +17,7 @@ test("API stays usable thanks to in-memory store", async () => {
   });
 
   expect(await store.setMany({ A: true })).toStrictEqual(
-    Result.Error(createError("indexedDB global doesn't exist")),
+    Result.Error(createError("UnknownError", "indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(
@@ -25,7 +25,7 @@ test("API stays usable thanks to in-memory store", async () => {
   );
 
   expect(await store.setMany({ B: true })).toStrictEqual(
-    Result.Error(createError("indexedDB global doesn't exist")),
+    Result.Error(createError("UnknownError", "indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(
@@ -34,7 +34,7 @@ test("API stays usable thanks to in-memory store", async () => {
 
   // in-memory store will not be wiped if indexedDB clear failed
   expect(await store.clear()).toStrictEqual(
-    Result.Error(createError("indexedDB global doesn't exist")),
+    Result.Error(createError("UnknownError", "indexedDB global doesn't exist")),
   );
 
   expect(await store.getMany(["A", "B"])).toStrictEqual(

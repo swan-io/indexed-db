@@ -10,7 +10,7 @@ test("rewriteError returns an unknown Error if null is passed", () => {
 });
 
 test("rewriteError add context in case of InvalidStateError", () => {
-  const error = createError("NO_INITIAL_MESSAGE", "InvalidStateError");
+  const error = createError("InvalidStateError", "NO_INITIAL_MESSAGE");
   const rewrittenError = rewriteError(error);
 
   expect(rewrittenError).toBeInstanceOf(Error);
@@ -27,8 +27,8 @@ test("rewriteError add context in case of InvalidStateError", () => {
 
 test("rewriteError does nothing in case it seems to be an iOS 12.x error, but the platform doesn't match", () => {
   const error = createError(
-    "An internal error was encountered in the Indexed Database server",
     "UnknownError",
+    "An internal error was encountered in the Indexed Database server",
   );
 
   const rewrittenError = rewriteError(error);

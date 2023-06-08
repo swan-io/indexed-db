@@ -11,18 +11,14 @@ const iOSVersion = Lazy(() => {
     : -1;
 });
 
-export const createError = (message: string, name?: string): Error => {
+export const createError = (name: string, message: string): Error => {
   const error = new Error(message);
-
-  if (name != null) {
-    error.name = name;
-  }
-
+  error.name = name;
   return error;
 };
 
 const deriveError = (originalError: Error, newMessage: string): Error => {
-  const newError = createError(newMessage, originalError.name);
+  const newError = createError(originalError.name, newMessage);
 
   if (originalError.stack != null) {
     newError.stack = originalError.stack;
@@ -33,7 +29,7 @@ const deriveError = (originalError: Error, newMessage: string): Error => {
 
 export const rewriteError = (error: Error | null): Error => {
   if (error == null) {
-    return createError("Unknown IndexedDB error", "UnknownError");
+    return createError("UnknownError", "Unknown IndexedDB error");
   }
 
   // https://github.com/firebase/firebase-js-sdk/blob/firebase%409.20.0/packages/firestore/src/local/simple_db.ts#L915

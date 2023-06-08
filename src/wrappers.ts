@@ -13,7 +13,7 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   if (indexedDB == null) {
     return Future.value(
       Result.Error(
-        createError("indexedDB global doesn't exist", "UnknownError"),
+        createError("UnknownError", "indexedDB global doesn't exist"),
       ),
     );
   }
@@ -45,7 +45,7 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
 
         resolve(
           Result.Error(
-            createError("Couldn't list IndexedDB databases", "TimeoutError"),
+            createError("TimeoutError", "Couldn't list IndexedDB databases"),
           ),
         );
       }

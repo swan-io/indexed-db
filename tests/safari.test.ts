@@ -61,7 +61,9 @@ describe("Safari 14.6 (unresponsive)", () => {
     const result = await getFactory();
 
     expect(result).toStrictEqual(
-      Result.Error(createError("Couldn't list IndexedDB databases")),
+      Result.Error(
+        createError("TimeoutError", "Couldn't list IndexedDB databases"),
+      ),
     );
   });
 });
@@ -137,7 +139,9 @@ describe("Safari 14.6 (responsive, but too late)", () => {
     const result = await getFactory();
 
     expect(result).toStrictEqual(
-      Result.Error(createError("Couldn't list IndexedDB databases")),
+      Result.Error(
+        createError("TimeoutError", "Couldn't list IndexedDB databases"),
+      ),
     );
   });
 });
