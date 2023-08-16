@@ -10,10 +10,6 @@ export const futurify = <T>(
     const transaction = request.transaction;
 
     const timeoutId = setTimeout(() => {
-      if (request.readyState === "done") {
-        return; // request has already been aborted
-      }
-
       if (transaction == null) {
         resolve(
           Result.Error(
@@ -26,9 +22,11 @@ export const futurify = <T>(
       } else {
         // Throws if the transaction has already been committed or aborted.
         // Triggers onerror listener with an AbortError DOMException.
-        Result.fromExecution<void, Error>(() => transaction.abort()).tapError(
-          (error) => resolve(Result.Error(error)),
-        );
+        Result.fromExecution<void, Error>(() => {
+          if (request.readyState !== "done") {
+            transaction.abort();
+          }
+        }).tapError((error) => resolve(Result.Error(error)));
       }
     }, timeout);
 
