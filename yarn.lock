@@ -1357,10 +1357,10 @@
     magic-string "^0.25.0"
     string.prototype.matchall "^4.0.6"
 
-"@swan-io/boxed@^1.0.1":
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/@swan-io/boxed/-/boxed-1.0.2.tgz#77a61d4a65169e86d928d865acea60c7c543e8c8"
-  integrity sha512-Mm7qV+62BUIgOL4/RvBx+hKIij07pAfDsvbuftEqTwbAZidHKta0q8b6Sddgf69vubwPM5K86cY61WMqqUfm8Q==
+"@swan-io/boxed@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@swan-io/boxed/-/boxed-2.0.0.tgz#b56bd01f6dc192e7aa1ed0659f149ebdc030d308"
+  integrity sha512-2U098tBOTMShB1fbkapIVxDZJGnS7Sz5Hr4T1MX6xJETaTrFCj2YhCjR4wxrCqzHrDT3PVvaSI6HN4H3PUZHqA==
 
 "@trysound/sax@0.2.0":
   version "0.2.0"
