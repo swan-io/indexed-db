@@ -28,7 +28,7 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
     return Future.value(Result.Ok(indexedDB));
   }
 
-  let intervalId: NodeJS.Timer;
+  let intervalId: number;
   let remainingAttempts = 10;
 
   return Future.make((resolve) => {
@@ -36,7 +36,7 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
       remainingAttempts = remainingAttempts - 1;
 
       if (remainingAttempts > 0) {
-        indexedDB.databases().finally(() => {
+        void indexedDB.databases().finally(() => {
           clearInterval(intervalId);
           resolve(Result.Ok(indexedDB));
         });

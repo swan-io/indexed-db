@@ -1,4 +1,4 @@
 .eslintrc.js
 dist/
 tests/
-vite.config.ts
+vite.config.mts

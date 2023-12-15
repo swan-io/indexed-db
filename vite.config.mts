@@ -6,7 +6,6 @@ const CI = process.env.CI === String(true);
 export default defineConfig({
   test: {
     include: ["./tests/**/*.test.ts"],
-    threads: false,
     watch: false,
     browser: {
       enabled: true,

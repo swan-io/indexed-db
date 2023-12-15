@@ -11,9 +11,10 @@ export const retry = <A, E>(
   );
 
 export const zipToObject = <T extends string>(keys: T[], values: unknown[]) =>
-  keys
-    .slice(0, Math.min(keys.length, values.length))
-    .reduce((acc, key, index) => {
+  keys.slice(0, Math.min(keys.length, values.length)).reduce(
+    (acc, key, index) => {
       acc[key] = values[index];
       return acc;
-    }, {} as Record<T, unknown>);
+    },
+    {} as Record<T, unknown>,
+  );
