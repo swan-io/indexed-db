@@ -7,7 +7,7 @@
   "homepage": "https://github.com/swan-io/indexed-db",
   "repository": {
     "type": "git",
-    "url": "https://github.com/swan-io/indexed-db.git"
+    "url": "git+https://github.com/swan-io/indexed-db.git"
   },
   "source": "src/index.ts",
   "main": "dist/index.js",
