@@ -38,7 +38,7 @@
     "format": "prettier '**/*' -u -w",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --ext ts ./src",
-    "test:install-deps": "playwright install-deps chromium firefox webkit",
+    "test:install-deps": "playwright install chromium firefox webkit",
     "test:chromium": "BROWSER=chromium vitest run",
     "test:firefox": "BROWSER=firefox vitest run",
     "test:webkit": "BROWSER=webkit vitest run",
