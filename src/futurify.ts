@@ -26,7 +26,18 @@ export const futurify = <T>(
           if (request.readyState !== "done") {
             transaction.abort();
           }
-        }).tapError((error) => resolve(Result.Error(error)));
+        })
+          .tapOk(() => {
+            resolve(
+              Result.Error(
+                createError(
+                  "TimeoutError",
+                  `${operationName} IndexedDB request timed out with status ${request.readyState}`,
+                ),
+              ),
+            );
+          })
+          .tapError((error) => resolve(Result.Error(error)));
       }
     }, timeout);
 
