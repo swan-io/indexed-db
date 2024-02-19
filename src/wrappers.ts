@@ -18,13 +18,9 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
     );
   }
 
-  const isSafari =
-    !navigator.userAgentData &&
-    /Safari\//.test(navigator.userAgent) &&
-    !/Chrom(e|ium)\//.test(navigator.userAgent);
-
-  // No point putting other browsers or older versions of Safari through this mess.
-  if (!isSafari || !("databases" in indexedDB)) {
+  // Firefox doesn't have `databases`, but doesn't seem to have particular bugs on opening either,
+  // meaning we can resolve immediately.
+  if (!("databases" in indexedDB)) {
     return Future.value(Result.Ok(indexedDB));
   }
 
