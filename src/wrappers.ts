@@ -1,6 +1,6 @@
 import { Future, Result } from "@swan-io/boxed";
 import { createError, isDatabaseClosedError } from "./errors";
-import { futurify } from "./futurify";
+import { futurifyOpen } from "./futurify";
 
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
@@ -18,9 +18,13 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
     );
   }
 
-  // Firefox doesn't have `databases`, but doesn't seem to have particular bugs on opening either,
-  // meaning we can resolve immediately.
-  if (!("databases" in indexedDB)) {
+  const isSafari =
+    !navigator.userAgentData &&
+    /Safari\//.test(navigator.userAgent) &&
+    !/Chrom(e|ium)\//.test(navigator.userAgent);
+
+  // No point putting other browsers or older versions of Safari through this mess.
+  if (!isSafari || !("databases" in indexedDB)) {
     return Future.value(Result.Ok(indexedDB));
   }
 
@@ -64,13 +68,7 @@ export const openDatabase = (
         ),
       ),
     )
-    .flatMapOk((request) => {
-      request.onupgradeneeded = () => {
-        request.result.createObjectStore(storeName);
-      };
-
-      return futurify(request, "openDatabase", 1000);
-    });
+    .flatMapOk((request) => futurifyOpen(request, storeName));
 
 const getStoreRaw = (
   database: IDBDatabase,
