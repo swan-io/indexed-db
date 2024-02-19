@@ -6,9 +6,9 @@ export const futurifyOpen = (
   storeName: string,
 ): Future<Result<IDBDatabase, Error>> =>
   Future.make((resolve) => {
-    const transaction = request.transaction;
-
     const timeoutId = setTimeout(() => {
+      const transaction = request.transaction;
+
       if (transaction == null) {
         resolve(
           Result.Error(
@@ -67,9 +67,9 @@ export const futurify = <T>(
   timeout: number,
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
-    const transaction = request.transaction;
-
     const timeoutId = setTimeout(() => {
+      const transaction = request.transaction;
+
       if (transaction == null) {
         resolve(
           Result.Error(
