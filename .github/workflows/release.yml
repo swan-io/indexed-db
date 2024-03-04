@@ -7,22 +7,27 @@ on:
 
 jobs:
   test:
-    name: Tests
+    name: Release
     timeout-minutes: 60
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+
       - name: Install dependencies
         run: yarn install --pure-lockfile
+
       - name: Install playwright browsers
         run: yarn test:install-deps
+
       - name: Run tests
         run: yarn test:ci
+
       - name: Build
         run: yarn build
+
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
