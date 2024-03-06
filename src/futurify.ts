@@ -1,6 +1,11 @@
 import { Future, Result } from "@swan-io/boxed";
 import { createError, rewriteError } from "./errors";
 
+const getTimeoutResult = (operationName: string) =>
+  Result.Error(
+    createError("TimeoutError", `${operationName} IndexedDB request timed out`),
+  );
+
 export const futurifyOpen = (
   request: IDBOpenDBRequest,
   storeName: string,
@@ -10,22 +15,19 @@ export const futurifyOpen = (
       const transaction = request.transaction;
 
       if (transaction == null) {
-        resolve(
-          Result.Error(
-            createError(
-              "TimeoutError",
-              "openDatabase IndexedDB request timed out",
-            ),
-          ),
-        );
+        resolve(getTimeoutResult("openDatabase"));
       } else {
-        // Throws if the transaction has already been committed or aborted.
-        // Triggers onerror listener with an AbortError DOMException.
         Result.fromExecution<void, Error>(() => {
-          transaction.abort();
-        }).tapError((error) => {
-          resolve(Result.Error(error));
-        });
+          if (request.readyState !== "done") {
+            transaction.abort();
+          }
+        })
+          .tapOk(() => {
+            resolve(getTimeoutResult("openDatabase"));
+          })
+          .tapError((error) => {
+            resolve(Result.Error(error));
+          });
       }
     }, 1000);
 
@@ -71,22 +73,19 @@ export const futurify = <T>(
       const transaction = request.transaction;
 
       if (transaction == null) {
-        resolve(
-          Result.Error(
-            createError(
-              "TimeoutError",
-              `${operationName} IndexedDB request timed out`,
-            ),
-          ),
-        );
+        resolve(getTimeoutResult(operationName));
       } else {
-        // Throws if the transaction has already been committed or aborted.
-        // Triggers onerror listener with an AbortError DOMException.
         Result.fromExecution<void, Error>(() => {
-          transaction.abort();
-        }).tapError((error) => {
-          resolve(Result.Error(error));
-        });
+          if (request.readyState !== "done") {
+            transaction.abort();
+          }
+        })
+          .tapOk(() => {
+            resolve(getTimeoutResult(operationName));
+          })
+          .tapError((error) => {
+            resolve(Result.Error(error));
+          });
       }
     }, timeout);
 
