@@ -1,6 +1,7 @@
-import { Future, Result } from "@swan-io/boxed";
+import { Array, Future, Result } from "@swan-io/boxed";
 import { createError, isDatabaseClosedError } from "./errors";
-import { futurifyOpen } from "./futurify";
+import { futurify } from "./futurify";
+import { retry } from "./helpers";
 
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
@@ -18,9 +19,12 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
     );
   }
 
-  // Firefox doesn't have `databases`, but doesn't seem to have particular
-  // bugs on opening either, meaning we can resolve immediately.
-  if (!("databases" in indexedDB)) {
+  const isSafari =
+    !navigator.userAgentData &&
+    /Safari\//.test(navigator.userAgent) &&
+    !/Chrom(e|ium)\//.test(navigator.userAgent);
+
+  if (!isSafari || !("databases" in indexedDB)) {
     return Future.value(Result.Ok(indexedDB));
   }
 
@@ -52,7 +56,7 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   });
 };
 
-export const openDatabase = (
+const openDatabase = (
   databaseName: string,
   storeName: string,
 ): Future<Result<IDBDatabase, Error>> =>
@@ -64,7 +68,13 @@ export const openDatabase = (
         ),
       ),
     )
-    .flatMapOk((request) => futurifyOpen(request, storeName));
+    .flatMapOk((request) => {
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(storeName);
+      };
+
+      return futurify(request);
+    });
 
 const getStoreRaw = (
   database: IDBDatabase,
@@ -77,7 +87,7 @@ const getStoreRaw = (
     ),
   );
 
-export const getStore = (
+const getStore = (
   database: IDBDatabase,
   databaseName: string,
   storeName: string,
@@ -90,3 +100,54 @@ export const getStore = (
           getStoreRaw(database, storeName, transactionMode),
         ),
   );
+
+export const getStoreEntries = (
+  databaseName: string,
+  storeName: string,
+): Future<Result<[IDBValidKey, unknown][], Error>> =>
+  openDatabase(databaseName, storeName).flatMapOk((database) => {
+    return retry(2, () =>
+      getStore(database, databaseName, storeName, "readonly"),
+    )
+      .flatMapOk((store) =>
+        Future.all([
+          futurify(store.getAllKeys()),
+          futurify(store.getAll()),
+        ]).map((results) => Result.all(results)),
+      )
+      .mapOk(([keys = [], values = []]) => Array.zip(keys, values as unknown[]))
+      .tap(() => database.close());
+  });
+
+export const setStoreEntries = (
+  databaseName: string,
+  storeName: string,
+  entries: [IDBValidKey, unknown][],
+): Future<void> =>
+  openDatabase(databaseName, storeName)
+    .flatMapOk((database) => {
+      return retry(2, () =>
+        getStore(database, databaseName, storeName, "readwrite"),
+      )
+        .flatMapOk((store) =>
+          Future.all(
+            entries.map(([key, value]) => futurify(store.put(value, key))),
+          ).map((results) => Result.all(results)),
+        )
+        .tap(() => database.close());
+    })
+    .map(() => undefined);
+
+export const clearStore = (
+  databaseName: string,
+  storeName: string,
+): Future<void> =>
+  openDatabase(databaseName, storeName)
+    .flatMapOk((database) => {
+      return retry(2, () =>
+        getStore(database, databaseName, storeName, "readwrite"),
+      )
+        .flatMapOk((store) => futurify(store.clear()))
+        .tap(() => database.close());
+    })
+    .map(() => undefined);

@@ -1,130 +1,77 @@
-import { Dict, Future, Result } from "@swan-io/boxed";
-import { futurify } from "./futurify";
-import { retry, zipToObject } from "./helpers";
-import { getInMemoryStore } from "./inMemoryStore";
-import { getStore, openDatabase } from "./wrappers";
+import { Dict, Future } from "@swan-io/boxed";
+import { clearStore, getStoreEntries, setStoreEntries } from "./wrappers";
 
-export const openStore = (
-  databaseName: string,
-  storeName: string,
-  options: {
-    enableInMemoryFallback?: boolean;
-    transactionRetries?: number;
-    transactionTimeout?: number;
-  } = {},
-) => {
-  const {
-    enableInMemoryFallback = false,
-    transactionRetries = 2,
-    transactionTimeout = 500,
-  } = options;
+export const openStore = (databaseName: string, storeName: string) => {
+  // const databaseFuture = openDatabase(databaseName, storeName);
 
-  const databaseFuture = openDatabase(databaseName, storeName);
-  const inMemoryStore = getInMemoryStore(databaseName, storeName);
+  const future: Future<Map<string, unknown>> = getStoreEntries(
+    databaseName,
+    storeName,
+  ).map((result) => {
+    const store = new Map<string, unknown>();
+
+    if (result.isError()) {
+      // error, wipe storage?
+      return store;
+    }
+
+    const entries = result.get();
+
+    for (const [key, value] of entries) {
+      if (typeof key === "string") {
+        store.set(key, value);
+      }
+    }
+
+    // window.addEventListener("storage", (event) => {
+    //   getEntries(databaseName, storeName).tapOk((entries) => {
+    //     console.log(event);
+    //     console.log(entries);
+
+    //     // const keys = entries.map(([key]) => key);
+
+    //     // for (const key of inMemoryStore.keys()) {
+    //     //   if (!keys.includes(key)) {
+    //     //     inMemoryStore.delete(key);
+    //     //   }
+    //     // }
+    //   });
+    // });
+
+    return store;
+  });
 
   return {
-    getMany: <T extends string>(
-      keys: T[],
-    ): Future<Result<Record<T, unknown>, Error>> => {
-      return databaseFuture
-        .flatMapOk((database) =>
-          retry(transactionRetries, () => {
-            return getStore(
-              database,
-              databaseName,
-              storeName,
-              "readonly",
-            ).flatMapOk((store) =>
-              Future.all(
-                keys.map((key) =>
-                  futurify(store.get(key), "getMany", transactionTimeout)
-                    .mapOk((value: unknown) => {
-                      if (!enableInMemoryFallback) {
-                        return value;
-                      }
-                      if (typeof value === "undefined") {
-                        return inMemoryStore.get(key);
-                      }
-
-                      inMemoryStore.set(key, value);
-                      return value;
-                    })
-                    .mapErrorToResult((error) =>
-                      enableInMemoryFallback
-                        ? Result.Ok(inMemoryStore.get(key))
-                        : Result.Error(error),
-                    ),
-                ),
-              ).map((results) => Result.all(results)),
-            );
-          }),
-        )
-        .mapOk((values) => zipToObject(keys, values))
-        .mapErrorToResult((error) => {
-          if (!enableInMemoryFallback) {
-            return Result.Error(error);
-          }
-
-          const values = keys.map((key) => inMemoryStore.get(key));
-          return Result.Ok(zipToObject(keys, values));
-        });
+    getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> => {
+      return future.map((store) =>
+        keys.reduce(
+          (acc, key) => {
+            acc[key] = store.get(key);
+            return acc;
+          },
+          {} as Record<T, unknown>,
+        ),
+      );
     },
 
-    setMany: (
-      object: Record<string, unknown>,
-    ): Future<Result<undefined, Error>> => {
-      const entries = Dict.entries(object);
+    setMany: (object: Record<string, unknown>): Future<void> => {
+      return future.flatMap((store) => {
+        const entries = Dict.entries(object);
 
-      return databaseFuture
-        .flatMapOk((database) =>
-          retry(transactionRetries, () => {
-            return getStore(
-              database,
-              databaseName,
-              storeName,
-              "readwrite",
-            ).flatMapOk((store) =>
-              Future.all(
-                entries.map(([key, value]) =>
-                  futurify(
-                    store.put(value, key),
-                    "setMany",
-                    transactionTimeout,
-                  ),
-                ),
-              ).map((results) => Result.all(results)),
-            );
-          }),
-        )
-        .mapOk(() => undefined)
-        .tap(() => {
-          if (enableInMemoryFallback) {
-            entries.forEach(([key, value]) => {
-              inMemoryStore.set(key, value);
-            });
-          }
-        });
+        for (const [key, value] of entries) {
+          store.set(key, value);
+        }
+
+        return setStoreEntries(databaseName, storeName, entries);
+      });
     },
 
-    clear: (): Future<Result<undefined, Error>> => {
-      return databaseFuture
-        .flatMapOk((database) =>
-          retry(transactionRetries, () => {
-            return getStore(
-              database,
-              databaseName,
-              storeName,
-              "readwrite",
-            ).flatMapOk((store) =>
-              futurify(store.clear(), "clear", transactionTimeout),
-            );
-          }),
-        )
-        .tapOk(() => {
-          if (enableInMemoryFallback) {
-            inMemoryStore.clear();
-          }
-        });
+    clear: (): Future<void> => {
+      return future.flatMap((store) => {
+        store.clear();
+
+        return clearStore(databaseName, storeName);
+      });
     },
   };
 };
