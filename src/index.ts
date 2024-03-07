@@ -19,20 +19,25 @@ export const openStore = (config: Config) => {
         }
       }
 
-      // window.addEventListener("storage", (event) => {
-      //   getEntries(databaseName, storeName).tapOk((entries) => {
-      //     console.log(event);
-      //     console.log(entries);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          getEntries(config).tapOk((entries) => {
+            const keys = entries.map(([key]) => key);
 
-      //     // const keys = entries.map(([key]) => key);
+            for (const [key, value] of entries) {
+              if (typeof key === "string") {
+                store.set(key, value);
+              }
+            }
 
-      //     // for (const key of inMemoryStore.keys()) {
-      //     //   if (!keys.includes(key)) {
-      //     //     inMemoryStore.delete(key);
-      //     //   }
-      //     // }
-      //   });
-      // });
+            for (const key of store.keys()) {
+              if (!keys.includes(key)) {
+                store.delete(key);
+              }
+            }
+          });
+        }
+      });
 
       return store;
     },
