@@ -18,7 +18,10 @@ $ npm install --save @swan-io/indexed-db
 ## Quickstart
 
 ```ts
-const store = openStore("myDatabaseName", "myStoreName");
+const store = openStore({
+  databaseName: "myDatabaseName",
+  storeName: "myStoreName",
+});
 
 store
   .setMany({
@@ -45,7 +48,9 @@ Open a database, create a store if needed and returns methods to manipulate it.<
 Note that you can open multiple databases / stores, with different names.
 
 ```ts
-const store = await openStore("myDatabaseName", "myStoreName", {
+const store = await openStore({
+  databaseName: "myDatabaseName",
+  storeName: "myStoreName",
   transactionRetries: 2, // retry failed transactions (default: 2)
   transactionTimeout: 500, // timeout a transaction when it takes too long (default: 500ms)
 });

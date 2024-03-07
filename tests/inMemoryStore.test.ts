@@ -10,7 +10,10 @@ afterAll(() => {
 });
 
 test("API stays usable thanks to in-memory store", async () => {
-  const store = await openStore("database", "storeA");
+  const store = await openStore({
+    databaseName: "database",
+    storeName: "storeA",
+  });
 
   expect(await store.setMany({ A: true })).toBeUndefined();
 
@@ -29,11 +32,17 @@ test("API stays usable thanks to in-memory store", async () => {
 });
 
 test.skip("In-memory stores are preserved during session", async () => {
-  const firstOpenedStore = await openStore("database", "storeB");
+  const firstOpenedStore = await openStore({
+    databaseName: "database",
+    storeName: "storeB",
+  });
 
   await firstOpenedStore.setMany({ A: true });
 
-  const secondOpenedStore = await openStore("database", "storeB");
+  const secondOpenedStore = await openStore({
+    databaseName: "database",
+    storeName: "storeB",
+  });
 
   expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual({
     A: true,
@@ -42,11 +51,17 @@ test.skip("In-memory stores are preserved during session", async () => {
 });
 
 test.skip("In-memory stores are created by database + store names", async () => {
-  const firstOpenedStore = await openStore("database", "storeC");
+  const firstOpenedStore = await openStore({
+    databaseName: "database",
+    storeName: "storeC",
+  });
 
   await firstOpenedStore.setMany({ A: true });
 
-  const secondOpenedStore = await openStore("database", "storeD");
+  const secondOpenedStore = await openStore({
+    databaseName: "database",
+    storeName: "storeD",
+  });
 
   expect(await secondOpenedStore.getMany(["A", "B"])).toStrictEqual({
     A: undefined,
