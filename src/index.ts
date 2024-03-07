@@ -1,12 +1,28 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import { futurify } from "./futurify";
 import { getInMemoryStore } from "./inMemoryStore";
-import { Config, getEntries, request } from "./wrappers";
+import { getEntries, request } from "./wrappers";
 
-export const openStore = (config: Config) => {
+export const openStore = (
+  databaseName: string,
+  storeName: string,
+  options: {
+    transactionRetries?: number;
+    transactionTimeout?: number;
+  } = {},
+) => {
+  const { transactionRetries = 2, transactionTimeout = 500 } = options;
+
+  const config = {
+    databaseName,
+    storeName,
+    transactionRetries,
+    transactionTimeout,
+  };
+
   const future: Future<Map<string, unknown>> = getEntries(config).map(
     (result) => {
-      const store = getInMemoryStore(config);
+      const store = getInMemoryStore(databaseName, storeName);
 
       if (result.isError()) {
         return store;
@@ -68,7 +84,7 @@ export const openStore = (config: Config) => {
         return request(config, "readwrite", (store) =>
           Future.all(
             entries.map(([key, value]) =>
-              futurify(config, store.put(value, key)),
+              futurify(store.put(value, key), transactionTimeout),
             ),
           ).map((results) => Result.all(results)),
         )
@@ -80,7 +96,7 @@ export const openStore = (config: Config) => {
     clear: (): Future<void> => {
       return future.flatMap((store) => {
         return request(config, "readwrite", (store) =>
-          futurify(config, store.clear()),
+          futurify(store.clear(), transactionTimeout),
         )
           .tapOk(() => store.clear())
           .tapError((_error) => {}) // TODO: log potential error

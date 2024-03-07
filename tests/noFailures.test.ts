@@ -1,10 +1,7 @@
 import { afterEach, expect, test } from "vitest";
 import { openStore } from "../src";
 
-const store = await openStore({
-  databaseName: "database",
-  storeName: "store",
-});
+const store = await openStore("database", "store");
 
 afterEach(async () => {
   await store.clear();

@@ -1,21 +1,22 @@
-import { Config } from "./wrappers";
-
 const databases: Record<string, Record<string, Map<string, unknown>>> = {};
 
-export const getInMemoryStore = (config: Config): Map<string, unknown> => {
-  const existingDatabase = databases[config.databaseName];
+export const getInMemoryStore = (
+  databaseName: string,
+  storeName: string,
+): Map<string, unknown> => {
+  const existingDatabase = databases[databaseName];
 
   if (existingDatabase == null) {
     const store = new Map<string, unknown>();
-    databases[config.databaseName] = { [config.storeName]: store };
+    databases[databaseName] = { [storeName]: store };
     return store;
   }
 
-  const existingStore = existingDatabase[config.storeName];
+  const existingStore = existingDatabase[storeName];
 
   if (existingStore == null) {
     const store = new Map<string, unknown>();
-    existingDatabase[config.storeName] = store;
+    existingDatabase[storeName] = store;
     return store;
   }
 

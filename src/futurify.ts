@@ -1,10 +1,9 @@
 import { Future, Result } from "@swan-io/boxed";
 import { createError, rewriteError } from "./errors";
-import { Config } from "./wrappers";
 
 export const futurify = <T>(
-  config: Config,
   request: IDBRequest<T>,
+  timeout: number,
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
     const timeoutId = setTimeout(() => {
@@ -33,7 +32,7 @@ export const futurify = <T>(
             resolve(Result.Error(error));
           });
       }
-    }, config.transactionTimeout ?? 500);
+    }, timeout);
 
     request.onsuccess = () => {
       clearTimeout(timeoutId);

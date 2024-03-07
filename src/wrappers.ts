@@ -3,11 +3,11 @@ import { createError, isDatabaseClosedError } from "./errors";
 import { futurify } from "./futurify";
 import { retry } from "./helpers";
 
-export type Config = {
+type Config = {
   databaseName: string;
   storeName: string;
-  transactionRetries?: number;
-  transactionTimeout?: number;
+  transactionRetries: number;
+  transactionTimeout: number;
 };
 
 /**
@@ -77,7 +77,7 @@ const openDatabase = (config: Config): Future<Result<IDBDatabase, Error>> =>
         request.result.createObjectStore(config.storeName);
       };
 
-      return futurify(config, request);
+      return futurify(request, 1000);
     });
 
 const getStore = (
@@ -113,7 +113,7 @@ export const request = <A, E>(
   callback: (store: IDBObjectStore) => Future<Result<A, E>>,
 ) =>
   openDatabase(config).flatMapOk((database) =>
-    retry(config.transactionRetries ?? 2, () =>
+    retry(config.transactionRetries, () =>
       getStoreWithReOpen(config, database, mode).flatMapOk(callback),
     ).tap(() => database.close()),
   );
@@ -123,8 +123,8 @@ export const getEntries = (
 ): Future<Result<[IDBValidKey, unknown][], Error>> =>
   request(config, "readonly", (store) =>
     Future.all([
-      futurify(config, store.getAllKeys()),
-      futurify(config, store.getAll()),
+      futurify(store.getAllKeys(), config.transactionTimeout),
+      futurify(store.getAll(), config.transactionTimeout),
     ])
       .map((results) => Result.all(results))
       .mapOk(([keys = [], values = []]) =>
