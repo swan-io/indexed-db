@@ -33,33 +33,34 @@ export const openStore = (
         return store;
       }
 
-      const entries = result.get();
-
-      for (const [key, value] of entries) {
+      for (const [key, value] of result.get()) {
         store.set(key, value);
       }
 
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-          getStoreEntries(config)
-            .tapError(onDatabaseError)
-            .tapOk((newEntries) => {
-              const newKeys = new Set(newEntries.map(([key]) => key));
-
-              for (const existingKey of store.keys()) {
-                if (!newKeys.has(existingKey)) {
-                  store.delete(existingKey);
-                }
-              }
-
-              for (const [newKey, newValue] of newEntries) {
-                store.set(newKey, newValue);
-              }
-            });
-        }
-      });
-
       return store;
+    })
+    .tap((store) => {
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") {
+          return;
+        }
+
+        getStoreEntries(config)
+          .tapError(onDatabaseError)
+          .tapOk((entries) => {
+            const keys = new Set(entries.map(([key]) => key));
+
+            for (const key of store.keys()) {
+              if (!keys.has(key)) {
+                store.delete(key);
+              }
+            }
+
+            for (const [key, value] of entries) {
+              store.set(key, value);
+            }
+          });
+      });
     });
 
   return {
