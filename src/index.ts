@@ -87,7 +87,7 @@ export const openStore = (
         return request(config, "readwrite", (store) =>
           Future.all(
             entries.map(([key, value]) =>
-              futurify(store.put(value, key), transactionTimeout),
+              futurify(store.put(value, key), "setMany", transactionTimeout),
             ),
           ).map((results) => Result.all(results)),
         )
@@ -99,7 +99,7 @@ export const openStore = (
     clear: (): Future<void> => {
       return future.flatMap((store) => {
         return request(config, "readwrite", (store) =>
-          futurify(store.clear(), transactionTimeout),
+          futurify(store.clear(), "clear", transactionTimeout),
         )
           .tapOk(() => store.clear())
           .tapError(onIndexedDatabaseError)

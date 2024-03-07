@@ -77,7 +77,7 @@ const openDatabase = (config: Config): Future<Result<IDBDatabase, Error>> =>
         request.result.createObjectStore(config.storeName);
       };
 
-      return futurify(request, 1000);
+      return futurify(request, "openDatabase", 1000);
     });
 
 const getStore = (
@@ -123,8 +123,8 @@ export const getEntries = (
 ): Future<Result<[string, unknown][], Error>> =>
   request(config, "readonly", (store) =>
     Future.all([
-      futurify(store.getAllKeys(), config.transactionTimeout),
-      futurify(store.getAll(), config.transactionTimeout),
+      futurify(store.getAllKeys(), "getEntries", config.transactionTimeout),
+      futurify(store.getAll(), "getEntries", config.transactionTimeout),
     ])
       .map((results) => Result.all(results))
       .mapOk(([keys = [], values = []]) =>

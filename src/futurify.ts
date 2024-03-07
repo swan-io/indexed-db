@@ -3,6 +3,7 @@ import { createError, rewriteError } from "./errors";
 
 export const futurify = <T>(
   request: IDBRequest<T>,
+  operationName: string,
   timeout: number,
 ): Future<Result<T, Error>> =>
   Future.make((resolve) => {
@@ -12,7 +13,10 @@ export const futurify = <T>(
       if (transaction == null) {
         resolve(
           Result.Error(
-            createError("TimeoutError", "IndexedDB request timed out"),
+            createError(
+              "TimeoutError",
+              `${operationName} IndexedDB request timed out`,
+            ),
           ),
         );
       } else {
@@ -24,7 +28,10 @@ export const futurify = <T>(
           .tapOk(() => {
             resolve(
               Result.Error(
-                createError("TimeoutError", "IndexedDB request timed out"),
+                createError(
+                  "TimeoutError",
+                  `${operationName} IndexedDB request timed out`,
+                ),
               ),
             );
           })
