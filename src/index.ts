@@ -1,19 +1,18 @@
-import { Dict, Future, Result } from "@swan-io/boxed";
-import { futurify } from "./futurify";
+import { Dict, Future } from "@swan-io/boxed";
 import { getInMemoryStore } from "./inMemoryStore";
-import { getEntries, request } from "./wrappers";
+import { clearStore, getStoreEntries, setStoreEntries } from "./wrappers";
 
 export const openStore = (
   databaseName: string,
   storeName: string,
   options: {
-    onIndexedDatabaseError?: (error: Error) => void;
+    onDatabaseError?: (error: Error) => void;
     transactionRetries?: number;
     transactionTimeout?: number;
   } = {},
 ) => {
   const {
-    onIndexedDatabaseError = () => {},
+    onDatabaseError = () => {},
     transactionRetries = 2,
     transactionTimeout = 500,
   } = options;
@@ -25,8 +24,8 @@ export const openStore = (
     transactionTimeout,
   };
 
-  const future: Future<Map<string, unknown>> = getEntries(config)
-    .tapError(onIndexedDatabaseError)
+  const future: Future<Map<string, unknown>> = getStoreEntries(config)
+    .tapError(onDatabaseError)
     .map((result) => {
       const store = getInMemoryStore(databaseName, storeName);
 
@@ -42,19 +41,19 @@ export const openStore = (
 
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
-          getEntries(config)
-            .tapError(onIndexedDatabaseError)
-            .tapOk((entries) => {
-              const keys = new Set(entries.map(([key]) => key));
+          getStoreEntries(config)
+            .tapError(onDatabaseError)
+            .tapOk((newEntries) => {
+              const newKeys = new Set(newEntries.map(([key]) => key));
 
-              for (const [key, value] of entries) {
-                store.set(key, value);
+              for (const existingKey of store.keys()) {
+                if (!newKeys.has(existingKey)) {
+                  store.delete(existingKey);
+                }
               }
 
-              for (const key of store.keys()) {
-                if (!keys.has(key)) {
-                  store.delete(key);
-                }
+              for (const [newKey, newValue] of newEntries) {
+                store.set(newKey, newValue);
               }
             });
         }
@@ -64,8 +63,8 @@ export const openStore = (
     });
 
   return {
-    getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> => {
-      return future.map((store) =>
+    getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> =>
+      future.map((store) =>
         keys.reduce(
           (acc, key) => {
             acc[key] = store.get(key);
@@ -73,38 +72,27 @@ export const openStore = (
           },
           {} as Record<T, unknown>,
         ),
-      );
-    },
+      ),
 
-    setMany: (object: Record<string, unknown>): Future<void> => {
-      return future.flatMap((store) => {
+    setMany: (object: Record<string, unknown>): Future<void> =>
+      future.flatMap((store) => {
         const entries = Dict.entries(object);
 
         for (const [key, value] of entries) {
           store.set(key, value);
         }
 
-        return request(config, "readwrite", (store) =>
-          Future.all(
-            entries.map(([key, value]) =>
-              futurify(store.put(value, key), "setMany", transactionTimeout),
-            ),
-          ).map((results) => Result.all(results)),
-        )
-          .tapError(onIndexedDatabaseError)
+        return setStoreEntries(config, entries)
+          .tapError(onDatabaseError)
           .map(() => undefined);
-      });
-    },
+      }),
 
-    clear: (): Future<void> => {
-      return future.flatMap((store) => {
-        return request(config, "readwrite", (store) =>
-          futurify(store.clear(), "clear", transactionTimeout),
-        )
+    clear: (): Future<void> =>
+      future.flatMap((store) =>
+        clearStore(config)
           .tapOk(() => store.clear())
-          .tapError(onIndexedDatabaseError)
-          .map(() => undefined);
-      });
-    },
+          .tapError(onDatabaseError)
+          .map(() => undefined),
+      ),
   };
 };

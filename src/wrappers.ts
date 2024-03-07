@@ -107,7 +107,7 @@ const getStoreWithReOpen = (
     );
   });
 
-export const request = <A, E>(
+const request = <A, E>(
   config: Config,
   mode: IDBTransactionMode,
   callback: (store: IDBObjectStore) => Future<Result<A, E>>,
@@ -118,7 +118,7 @@ export const request = <A, E>(
     ).tap(() => database.close()),
   );
 
-export const getEntries = (
+export const getStoreEntries = (
   config: Config,
 ): Future<Result<[string, unknown][], Error>> =>
   request(config, "readonly", (store) =>
@@ -132,4 +132,21 @@ export const getEntries = (
           (pair): pair is [string, unknown] => typeof pair[0] === "string",
         ),
       ),
+  );
+
+export const setStoreEntries = (
+  config: Config,
+  entries: [string, unknown][],
+): Future<Result<IDBValidKey[], Error>> =>
+  request(config, "readwrite", (store) =>
+    Future.all(
+      entries.map(([key, value]) =>
+        futurify(store.put(value, key), "setMany", config.transactionTimeout),
+      ),
+    ).map((results) => Result.all(results)),
+  );
+
+export const clearStore = (config: Config): Future<Result<void, Error>> =>
+  request(config, "readwrite", (store) =>
+    futurify(store.clear(), "clear", config.transactionTimeout),
   );
