@@ -84,15 +84,15 @@ export const openStore = (
 
         return setStoreEntries(config, entries)
           .tapError(onDatabaseError)
-          .map(() => undefined);
+          .map(() => undefined); // Ignore the result
       }),
 
     clear: (): Future<void> =>
-      storeFuture.flatMap((store) =>
-        clearStore(config)
+      storeFuture.flatMap((store) => {
+        return clearStore(config)
           .tapOk(() => store.clear())
           .tapError(onDatabaseError)
-          .map(() => undefined),
-      ),
+          .map(() => undefined); // Ignore the result
+      }),
   };
 };
