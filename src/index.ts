@@ -7,11 +7,16 @@ export const openStore = (
   databaseName: string,
   storeName: string,
   options: {
+    onIndexedDatabaseError?: (error: Error) => void;
     transactionRetries?: number;
     transactionTimeout?: number;
   } = {},
 ) => {
-  const { transactionRetries = 2, transactionTimeout = 500 } = options;
+  const {
+    onIndexedDatabaseError = () => {},
+    transactionRetries = 2,
+    transactionTimeout = 500,
+  } = options;
 
   const config = {
     databaseName,
@@ -20,8 +25,9 @@ export const openStore = (
     transactionTimeout,
   };
 
-  const future: Future<Map<string, unknown>> = getEntries(config).map(
-    (result) => {
+  const future: Future<Map<string, unknown>> = getEntries(config)
+    .tapError(onIndexedDatabaseError)
+    .map((result) => {
       const store = getInMemoryStore(databaseName, storeName);
 
       if (result.isError()) {
@@ -36,25 +42,26 @@ export const openStore = (
 
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
-          getEntries(config).tapOk((newEntries) => {
-            const newKeys = new Set(newEntries.map(([key]) => key));
+          getEntries(config)
+            .tapError(onIndexedDatabaseError)
+            .tapOk((entries) => {
+              const keys = new Set(entries.map(([key]) => key));
 
-            for (const [key, value] of newEntries) {
-              store.set(key, value);
-            }
-
-            for (const key of store.keys()) {
-              if (!newKeys.has(key)) {
-                store.delete(key);
+              for (const [key, value] of entries) {
+                store.set(key, value);
               }
-            }
-          });
+
+              for (const key of store.keys()) {
+                if (!keys.has(key)) {
+                  store.delete(key);
+                }
+              }
+            });
         }
       });
 
       return store;
-    },
-  );
+    });
 
   return {
     getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> => {
@@ -84,7 +91,7 @@ export const openStore = (
             ),
           ).map((results) => Result.all(results)),
         )
-          .tapError((_error) => {}) // TODO: log potential error
+          .tapError(onIndexedDatabaseError)
           .map(() => undefined);
       });
     },
@@ -95,7 +102,7 @@ export const openStore = (
           futurify(store.clear(), transactionTimeout),
         )
           .tapOk(() => store.clear())
-          .tapError((_error) => {}) // TODO: log potential error
+          .tapError(onIndexedDatabaseError)
           .map(() => undefined);
       });
     },
