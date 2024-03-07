@@ -3,6 +3,13 @@ import { createError, isDatabaseClosedError } from "./errors";
 import { futurify } from "./futurify";
 import { retry } from "./helpers";
 
+export type Config = {
+  databaseName: string;
+  storeName: string;
+  transactionRetries?: number;
+  transactionTimeout?: number;
+};
+
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
  * We resolve this future with error after 100ms if it seems to happen.
@@ -56,75 +63,69 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   });
 };
 
-const openDatabase = (
-  databaseName: string,
-  storeName: string,
-): Future<Result<IDBDatabase, Error>> =>
+const openDatabase = (config: Config): Future<Result<IDBDatabase, Error>> =>
   getFactory()
     .flatMapOk((factory) =>
       Future.value(
         Result.fromExecution<IDBOpenDBRequest, Error>(() =>
-          factory.open(databaseName),
+          factory.open(config.databaseName),
         ),
       ),
     )
     .flatMapOk((request) => {
       request.onupgradeneeded = () => {
-        request.result.createObjectStore(storeName);
+        request.result.createObjectStore(config.storeName);
       };
 
-      return futurify(request);
+      return futurify(config, request);
     });
 
 const getStore = (
+  config: Config,
   database: IDBDatabase,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
+  mode: IDBTransactionMode,
 ): Future<Result<IDBObjectStore, Error>> =>
   Future.value(
     Result.fromExecution<IDBObjectStore, Error>(() =>
-      database.transaction(storeName, transactionMode).objectStore(storeName),
+      database
+        .transaction(config.storeName, mode)
+        .objectStore(config.storeName),
     ),
   );
 
 const getStoreWithReOpen = (
+  config: Config,
   database: IDBDatabase,
-  databaseName: string,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
+  mode: IDBTransactionMode,
 ): Future<Result<IDBObjectStore, Error>> =>
-  getStore(database, storeName, transactionMode).flatMapError((error) => {
+  getStore(config, database, mode).flatMapError((error) => {
     if (!isDatabaseClosedError(error)) {
       return Future.value(Result.Error(error));
     }
-    return openDatabase(databaseName, storeName).flatMapOk((database) =>
-      getStore(database, storeName, transactionMode),
+    return openDatabase(config).flatMapOk((database) =>
+      getStore(config, database, mode),
     );
   });
 
 export const request = <A, E>(
-  databaseName: string,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
+  config: Config,
+  mode: IDBTransactionMode,
   callback: (store: IDBObjectStore) => Future<Result<A, E>>,
 ) =>
-  openDatabase(databaseName, storeName).flatMapOk((database) =>
-    retry(2, () =>
-      getStoreWithReOpen(
-        database,
-        databaseName,
-        storeName,
-        transactionMode,
-      ).flatMapOk(callback),
+  openDatabase(config).flatMapOk((database) =>
+    retry(config.transactionRetries ?? 2, () =>
+      getStoreWithReOpen(config, database, mode).flatMapOk(callback),
     ).tap(() => database.close()),
   );
 
 export const getEntries = (
-  databaseName: string,
-  storeName: string,
+  config: Config,
 ): Future<Result<[IDBValidKey, unknown][], Error>> =>
-  request(databaseName, storeName, "readonly", (store) =>
-    Future.all([futurify(store.getAllKeys()), futurify(store.getAll())])
+  request(config, "readonly", (store) =>
+    Future.all([
+      futurify(config, store.getAllKeys()),
+      futurify(config, store.getAll()),
+    ])
       .map((results) => Result.all(results))
       .mapOk(([keys = [], values = []]) =>
         Array.zip(keys, values as unknown[]),

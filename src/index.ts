@@ -1,43 +1,42 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import { futurify } from "./futurify";
-import { getEntries, request } from "./wrappers";
+import { Config, getEntries, request } from "./wrappers";
 
-export const openStore = (databaseName: string, storeName: string) => {
-  const future: Future<Map<string, unknown>> = getEntries(
-    databaseName,
-    storeName,
-  ).map((result) => {
-    const store = new Map<string, unknown>();
+export const openStore = (config: Config) => {
+  const future: Future<Map<string, unknown>> = getEntries(config).map(
+    (result) => {
+      const store = new Map<string, unknown>();
 
-    if (result.isError()) {
-      return store;
-    }
-
-    const entries = result.get();
-
-    for (const [key, value] of entries) {
-      if (typeof key === "string") {
-        store.set(key, value);
+      if (result.isError()) {
+        return store;
       }
-    }
 
-    // window.addEventListener("storage", (event) => {
-    //   getEntries(databaseName, storeName).tapOk((entries) => {
-    //     console.log(event);
-    //     console.log(entries);
+      const entries = result.get();
 
-    //     // const keys = entries.map(([key]) => key);
+      for (const [key, value] of entries) {
+        if (typeof key === "string") {
+          store.set(key, value);
+        }
+      }
 
-    //     // for (const key of inMemoryStore.keys()) {
-    //     //   if (!keys.includes(key)) {
-    //     //     inMemoryStore.delete(key);
-    //     //   }
-    //     // }
-    //   });
-    // });
+      // window.addEventListener("storage", (event) => {
+      //   getEntries(databaseName, storeName).tapOk((entries) => {
+      //     console.log(event);
+      //     console.log(entries);
 
-    return store;
-  });
+      //     // const keys = entries.map(([key]) => key);
+
+      //     // for (const key of inMemoryStore.keys()) {
+      //     //   if (!keys.includes(key)) {
+      //     //     inMemoryStore.delete(key);
+      //     //   }
+      //     // }
+      //   });
+      // });
+
+      return store;
+    },
+  );
 
   return {
     getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> => {
@@ -60,9 +59,11 @@ export const openStore = (databaseName: string, storeName: string) => {
           store.set(key, value);
         }
 
-        return request(databaseName, storeName, "readwrite", (store) =>
+        return request(config, "readwrite", (store) =>
           Future.all(
-            entries.map(([key, value]) => futurify(store.put(value, key))),
+            entries.map(([key, value]) =>
+              futurify(config, store.put(value, key)),
+            ),
           ).map((results) => Result.all(results)),
         )
           .tapError((_error) => {}) // TODO: log potential error
@@ -72,8 +73,8 @@ export const openStore = (databaseName: string, storeName: string) => {
 
     clear: (): Future<void> => {
       return future.flatMap((store) => {
-        return request(databaseName, storeName, "readwrite", (store) =>
-          futurify(store.clear()),
+        return request(config, "readwrite", (store) =>
+          futurify(config, store.clear()),
         )
           .tapOk(() => store.clear())
           .tapError((_error) => {}) // TODO: log potential error
