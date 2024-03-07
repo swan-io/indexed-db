@@ -29,12 +29,10 @@ export const openStore = (
     .map((result) => {
       const store = getInMemoryStore(databaseName, storeName);
 
-      if (result.isError()) {
-        return store;
-      }
-
-      for (const [key, value] of result.get()) {
-        store.set(key, value);
+      if (result.isOk()) {
+        for (const [key, value] of result.get()) {
+          store.set(key, value);
+        }
       }
 
       return store;
