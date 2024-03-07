@@ -1,10 +1,10 @@
 import { Dict, Future } from "@swan-io/boxed";
-import { clearStore, getStoreEntries, setStoreEntries } from "./wrappers";
+import { clearStore, getEntries, setEntries } from "./wrappers";
 
 export const openStore = (databaseName: string, storeName: string) => {
   // const databaseFuture = openDatabase(databaseName, storeName);
 
-  const future: Future<Map<string, unknown>> = getStoreEntries(
+  const future: Future<Map<string, unknown>> = getEntries(
     databaseName,
     storeName,
   ).map((result) => {
@@ -62,7 +62,7 @@ export const openStore = (databaseName: string, storeName: string) => {
           store.set(key, value);
         }
 
-        return setStoreEntries(databaseName, storeName, entries);
+        return setEntries(databaseName, storeName, entries);
       });
     },
 

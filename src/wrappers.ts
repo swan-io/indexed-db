@@ -76,7 +76,7 @@ const openDatabase = (
       return futurify(request);
     });
 
-const getStoreRaw = (
+const getStore = (
   database: IDBDatabase,
   storeName: string,
   transactionMode: IDBTransactionMode,
@@ -87,27 +87,28 @@ const getStoreRaw = (
     ),
   );
 
-const getStore = (
+const getStoreWithReOpen = (
   database: IDBDatabase,
   databaseName: string,
   storeName: string,
   transactionMode: IDBTransactionMode,
 ): Future<Result<IDBObjectStore, Error>> =>
-  getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
-    !isDatabaseClosedError(error)
-      ? Future.value(Result.Error(error))
-      : openDatabase(databaseName, storeName).flatMapOk((database) =>
-          getStoreRaw(database, storeName, transactionMode),
-        ),
-  );
+  getStore(database, storeName, transactionMode).flatMapError((error) => {
+    if (!isDatabaseClosedError(error)) {
+      return Future.value(Result.Error(error));
+    }
+    return openDatabase(databaseName, storeName).flatMapOk((database) =>
+      getStore(database, storeName, transactionMode),
+    );
+  });
 
-export const getStoreEntries = (
+export const getEntries = (
   databaseName: string,
   storeName: string,
 ): Future<Result<[IDBValidKey, unknown][], Error>> =>
   openDatabase(databaseName, storeName).flatMapOk((database) => {
     return retry(2, () =>
-      getStore(database, databaseName, storeName, "readonly"),
+      getStoreWithReOpen(database, databaseName, storeName, "readonly"),
     )
       .flatMapOk((store) =>
         Future.all([
@@ -119,7 +120,7 @@ export const getStoreEntries = (
       .tap(() => database.close());
   });
 
-export const setStoreEntries = (
+export const setEntries = (
   databaseName: string,
   storeName: string,
   entries: [IDBValidKey, unknown][],
@@ -127,7 +128,7 @@ export const setStoreEntries = (
   openDatabase(databaseName, storeName)
     .flatMapOk((database) => {
       return retry(2, () =>
-        getStore(database, databaseName, storeName, "readwrite"),
+        getStoreWithReOpen(database, databaseName, storeName, "readwrite"),
       )
         .flatMapOk((store) =>
           Future.all(
@@ -145,7 +146,7 @@ export const clearStore = (
   openDatabase(databaseName, storeName)
     .flatMapOk((database) => {
       return retry(2, () =>
-        getStore(database, databaseName, storeName, "readwrite"),
+        getStoreWithReOpen(database, databaseName, storeName, "readwrite"),
       )
         .flatMapOk((store) => futurify(store.clear()))
         .tap(() => database.close());
