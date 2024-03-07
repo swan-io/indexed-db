@@ -31,9 +31,7 @@ export const openStore = (
       const entries = result.get();
 
       for (const [key, value] of entries) {
-        if (typeof key === "string") {
-          store.set(key, value);
-        }
+        store.set(key, value);
       }
 
       document.addEventListener("visibilitychange", () => {
@@ -41,14 +39,13 @@ export const openStore = (
           getEntries(config).tapOk((newEntries) => {
             const newKeys = newEntries.map(([key]) => key);
 
+            for (const [key, value] of newEntries) {
+              store.set(key, value);
+            }
+
             for (const key of store.keys()) {
               if (!newKeys.includes(key)) {
                 store.delete(key);
-              }
-            }
-            for (const [key, value] of newEntries) {
-              if (typeof key === "string") {
-                store.set(key, value);
               }
             }
           });

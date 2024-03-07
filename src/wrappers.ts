@@ -120,7 +120,7 @@ export const request = <A, E>(
 
 export const getEntries = (
   config: Config,
-): Future<Result<[IDBValidKey, unknown][], Error>> =>
+): Future<Result<[string, unknown][], Error>> =>
   request(config, "readonly", (store) =>
     Future.all([
       futurify(store.getAllKeys(), config.transactionTimeout),
@@ -128,6 +128,8 @@ export const getEntries = (
     ])
       .map((results) => Result.all(results))
       .mapOk(([keys = [], values = []]) =>
-        Array.zip(keys, values as unknown[]),
+        Array.zip(keys, values as unknown[]).filter(
+          (pair): pair is [string, unknown] => typeof pair[0] === "string",
+        ),
       ),
   );
