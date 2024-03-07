@@ -1,11 +1,12 @@
 import { Dict, Future, Result } from "@swan-io/boxed";
 import { futurify } from "./futurify";
+import { getInMemoryStore } from "./inMemoryStore";
 import { Config, getEntries, request } from "./wrappers";
 
 export const openStore = (config: Config) => {
   const future: Future<Map<string, unknown>> = getEntries(config).map(
     (result) => {
-      const store = new Map<string, unknown>();
+      const store = getInMemoryStore(config);
 
       if (result.isError()) {
         return store;
