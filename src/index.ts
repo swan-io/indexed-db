@@ -37,14 +37,14 @@ export const openStore = (
       document.addEventListener("visibilitychange", () => {
         if (document.visibilityState === "visible") {
           getEntries(config).tapOk((newEntries) => {
-            const newKeys = newEntries.map(([key]) => key);
+            const newKeys = new Set(newEntries.map(([key]) => key));
 
             for (const [key, value] of newEntries) {
               store.set(key, value);
             }
 
             for (const key of store.keys()) {
-              if (!newKeys.includes(key)) {
+              if (!newKeys.has(key)) {
                 store.delete(key);
               }
             }
