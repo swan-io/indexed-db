@@ -24,7 +24,7 @@ export const openStore = (
     transactionTimeout,
   };
 
-  const future: Future<Map<string, unknown>> = getStoreEntries(config)
+  const storeFuture: Future<Map<string, unknown>> = getStoreEntries(config)
     .tapError(onDatabaseError)
     .map((result) => {
       const store = getInMemoryStore(databaseName, storeName);
@@ -64,7 +64,7 @@ export const openStore = (
 
   return {
     getMany: <T extends string>(keys: T[]): Future<Record<T, unknown>> =>
-      future.map((store) =>
+      storeFuture.map((store) =>
         keys.reduce(
           (acc, key) => {
             acc[key] = store.get(key);
@@ -75,7 +75,7 @@ export const openStore = (
       ),
 
     setMany: (object: Record<string, unknown>): Future<void> =>
-      future.flatMap((store) => {
+      storeFuture.flatMap((store) => {
         const entries = Dict.entries(object);
 
         for (const [key, value] of entries) {
@@ -88,7 +88,7 @@ export const openStore = (
       }),
 
     clear: (): Future<void> =>
-      future.flatMap((store) =>
+      storeFuture.flatMap((store) =>
         clearStore(config)
           .tapOk(() => store.clear())
           .tapError(onDatabaseError)
