@@ -23,9 +23,9 @@ test("API stays usable thanks to in-memory store", async () => {
   expect(await store.getMany(["A", "B"])).toStrictEqual({ A: true, B: true });
 
   // in-memory store will not be wiped if indexedDB clear failed
-  // expect(await store.clear()).toBeUndefined();
+  expect(await store.clear()).toBeUndefined();
 
-  // expect(await store.getMany(["A", "B"])).toStrictEqual({ A: true, B: true });
+  expect(await store.getMany(["A", "B"])).toStrictEqual({ A: true, B: true });
 });
 
 test.skip("In-memory stores are preserved during session", async () => {

@@ -1,9 +1,8 @@
-import { Dict, Future } from "@swan-io/boxed";
-import { clearStore, getEntries, setEntries } from "./wrappers";
+import { Dict, Future, Result } from "@swan-io/boxed";
+import { futurify } from "./futurify";
+import { getEntries, request } from "./wrappers";
 
 export const openStore = (databaseName: string, storeName: string) => {
-  // const databaseFuture = openDatabase(databaseName, storeName);
-
   const future: Future<Map<string, unknown>> = getEntries(
     databaseName,
     storeName,
@@ -11,7 +10,6 @@ export const openStore = (databaseName: string, storeName: string) => {
     const store = new Map<string, unknown>();
 
     if (result.isError()) {
-      // error, wipe storage?
       return store;
     }
 
@@ -62,15 +60,24 @@ export const openStore = (databaseName: string, storeName: string) => {
           store.set(key, value);
         }
 
-        return setEntries(databaseName, storeName, entries);
+        return request(databaseName, storeName, "readwrite", (store) =>
+          Future.all(
+            entries.map(([key, value]) => futurify(store.put(value, key))),
+          ).map((results) => Result.all(results)),
+        )
+          .tapError((_error) => {}) // TODO: log potential error
+          .map(() => undefined);
       });
     },
 
     clear: (): Future<void> => {
       return future.flatMap((store) => {
-        store.clear();
-
-        return clearStore(databaseName, storeName);
+        return request(databaseName, storeName, "readwrite", (store) =>
+          futurify(store.clear()),
+        )
+          .tapOk(() => store.clear())
+          .tapError((_error) => {}) // TODO: log potential error
+          .map(() => undefined);
       });
     },
   };

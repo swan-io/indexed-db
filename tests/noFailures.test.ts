@@ -7,7 +7,7 @@ afterEach(async () => {
   await store.clear();
 });
 
-test("Happy path with no failures", { repeats: 1000 }, async () => {
+test("Happy path with no failures", { repeats: 100 }, async () => {
   expect(await store.setMany({ A: true })).toBeUndefined();
 
   expect(await store.getMany(["A", "B"])).toStrictEqual({

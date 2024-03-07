@@ -102,53 +102,31 @@ const getStoreWithReOpen = (
     );
   });
 
+export const request = <A, E>(
+  databaseName: string,
+  storeName: string,
+  transactionMode: IDBTransactionMode,
+  callback: (store: IDBObjectStore) => Future<Result<A, E>>,
+) =>
+  openDatabase(databaseName, storeName).flatMapOk((database) =>
+    retry(2, () =>
+      getStoreWithReOpen(
+        database,
+        databaseName,
+        storeName,
+        transactionMode,
+      ).flatMapOk(callback),
+    ).tap(() => database.close()),
+  );
+
 export const getEntries = (
   databaseName: string,
   storeName: string,
 ): Future<Result<[IDBValidKey, unknown][], Error>> =>
-  openDatabase(databaseName, storeName).flatMapOk((database) => {
-    return retry(2, () =>
-      getStoreWithReOpen(database, databaseName, storeName, "readonly"),
-    )
-      .flatMapOk((store) =>
-        Future.all([
-          futurify(store.getAllKeys()),
-          futurify(store.getAll()),
-        ]).map((results) => Result.all(results)),
-      )
-      .mapOk(([keys = [], values = []]) => Array.zip(keys, values as unknown[]))
-      .tap(() => database.close());
-  });
-
-export const setEntries = (
-  databaseName: string,
-  storeName: string,
-  entries: [IDBValidKey, unknown][],
-): Future<void> =>
-  openDatabase(databaseName, storeName)
-    .flatMapOk((database) => {
-      return retry(2, () =>
-        getStoreWithReOpen(database, databaseName, storeName, "readwrite"),
-      )
-        .flatMapOk((store) =>
-          Future.all(
-            entries.map(([key, value]) => futurify(store.put(value, key))),
-          ).map((results) => Result.all(results)),
-        )
-        .tap(() => database.close());
-    })
-    .map(() => undefined);
-
-export const clearStore = (
-  databaseName: string,
-  storeName: string,
-): Future<void> =>
-  openDatabase(databaseName, storeName)
-    .flatMapOk((database) => {
-      return retry(2, () =>
-        getStoreWithReOpen(database, databaseName, storeName, "readwrite"),
-      )
-        .flatMapOk((store) => futurify(store.clear()))
-        .tap(() => database.close());
-    })
-    .map(() => undefined);
+  request(databaseName, storeName, "readonly", (store) =>
+    Future.all([futurify(store.getAllKeys()), futurify(store.getAll())])
+      .map((results) => Result.all(results))
+      .mapOk(([keys = [], values = []]) =>
+        Array.zip(keys, values as unknown[]),
+      ),
+  );
