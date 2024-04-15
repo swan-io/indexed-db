@@ -1,6 +1,6 @@
 {
   "name": "@swan-io/indexed-db",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "license": "MIT",
   "description": "A resilient, Future-based key-value store for IndexedDB",
   "author": "Mathieu Acthernoene <mathieu.acthernoene@swan.io>",
