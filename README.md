@@ -25,8 +25,8 @@ store
     firstName: "Mathieu",
     lastName: "Breton",
   })
-  .flatMapOk(() => store.getMany(["firstName", "lastName"]))
-  .flatMapOk(({ firstName, lastName }) => {
+  .flatMap(() => store.getMany(["firstName", "lastName"]))
+  .flatMap(({ firstName, lastName }) => {
     console.log({
       firstName,
       lastName,
@@ -34,7 +34,7 @@ store
 
     return store.clear();
   })
-  .tapOk(() => {
+  .tap(() => {
     console.log("✅");
   });
 ```
@@ -48,7 +48,7 @@ Note that you can open multiple databases / stores, with different names.
 const store = await openStore("myDatabaseName", "myStoreName", {
   transactionRetries: 2, // retry failed transactions (default: 2)
   transactionTimeout: 500, // timeout a transaction when it takes too long (default: 500ms)
-  onDatabaseError: (error: Error) => console.error(error); // called with idb errors (default: noop)
+  onDatabaseError: (error: Error) => console.error(error), // called with idb errors (default: noop)
 });
 ```
 
@@ -59,7 +59,7 @@ Get many values at once. Resolves with a record.
 ```ts
 store
   .getMany(["firstName", "lastName"])
-  .mapOk(({ firstName, lastName }) => console.log({ firstName, lastName }));
+  .map(({ firstName, lastName }) => console.log({ firstName, lastName }));
 ```
 
 ### store.setMany
@@ -69,7 +69,7 @@ Set many key-value pairs at once.
 ```ts
 store
   .setMany({ firstName: "Mathieu", lastName: "Breton" })
-  .tapOk(() => console.log("✅"));
+  .tap(() => console.log("✅"));
 ```
 
 ### store.clear
@@ -77,7 +77,7 @@ store
 Clear all values in the store.
 
 ```ts
-store.clear().tapOk(() => console.log("✅"));
+store.clear().tap(() => console.log("✅"));
 ```
 
 ## 🙌 Acknowledgements
