@@ -22,12 +22,7 @@ jobs:
       - name: Install playwright browsers
         run: yarn test:install-deps
 
-      - name: Run tests
-        run: yarn test:ci
-
-      - name: Build
-        run: yarn build
-
+      # Will run prepack first
       - name: Publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
