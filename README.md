@@ -46,9 +46,9 @@ Note that you can open multiple databases / stores, with different names.
 
 ```ts
 const store = await openStore("myDatabaseName", "myStoreName", {
-  enableInMemoryFallback: true, // keep data in-memory in cases of read failures (default: false)
   transactionRetries: 2, // retry failed transactions (default: 2)
   transactionTimeout: 500, // timeout a transaction when it takes too long (default: 500ms)
+  onDatabaseError: (error: Error) => console.error(error); // called with idb errors (default: noop)
 });
 ```
 

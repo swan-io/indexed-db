@@ -1,6 +1,14 @@
-import { Future, Result } from "@swan-io/boxed";
+import { Array, Future, Result } from "@swan-io/boxed";
 import { createError, isDatabaseClosedError } from "./errors";
-import { futurifyOpen } from "./futurify";
+import { futurify } from "./futurify";
+import { retry } from "./helpers";
+
+type Config = {
+  databaseName: string;
+  storeName: string;
+  transactionRetries: number;
+  transactionTimeout: number;
+};
 
 /**
  * Safari has a horrible bug where IndexedDB requests can hang forever.
@@ -18,9 +26,12 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
     );
   }
 
-  // Firefox doesn't have `databases`, but doesn't seem to have particular
-  // bugs on opening either, meaning we can resolve immediately.
-  if (!("databases" in indexedDB)) {
+  const isSafari =
+    !navigator.userAgentData &&
+    /Safari\//.test(navigator.userAgent) &&
+    !/Chrom(e|ium)\//.test(navigator.userAgent);
+
+  if (!isSafari || !("databases" in indexedDB)) {
     return Future.value(Result.Ok(indexedDB));
   }
 
@@ -52,41 +63,90 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
   });
 };
 
-export const openDatabase = (
-  databaseName: string,
-  storeName: string,
-): Future<Result<IDBDatabase, Error>> =>
+const openDatabase = (config: Config): Future<Result<IDBDatabase, Error>> =>
   getFactory()
     .flatMapOk((factory) =>
       Future.value(
         Result.fromExecution<IDBOpenDBRequest, Error>(() =>
-          factory.open(databaseName),
+          factory.open(config.databaseName),
         ),
       ),
     )
-    .flatMapOk((request) => futurifyOpen(request, storeName));
+    .flatMapOk((request) => {
+      request.onupgradeneeded = () => {
+        request.result.createObjectStore(config.storeName);
+      };
 
-const getStoreRaw = (
+      return futurify(request, "openDatabase", 1000);
+    });
+
+const getStore = (
+  config: Config,
   database: IDBDatabase,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
+  mode: IDBTransactionMode,
 ): Future<Result<IDBObjectStore, Error>> =>
   Future.value(
     Result.fromExecution<IDBObjectStore, Error>(() =>
-      database.transaction(storeName, transactionMode).objectStore(storeName),
+      database
+        .transaction(config.storeName, mode)
+        .objectStore(config.storeName),
     ),
   );
 
-export const getStore = (
+const getStoreWithReOpen = (
+  config: Config,
   database: IDBDatabase,
-  databaseName: string,
-  storeName: string,
-  transactionMode: IDBTransactionMode,
+  mode: IDBTransactionMode,
 ): Future<Result<IDBObjectStore, Error>> =>
-  getStoreRaw(database, storeName, transactionMode).flatMapError((error) =>
-    !isDatabaseClosedError(error)
-      ? Future.value(Result.Error(error))
-      : openDatabase(databaseName, storeName).flatMapOk((database) =>
-          getStoreRaw(database, storeName, transactionMode),
+  getStore(config, database, mode).flatMapError((error) => {
+    if (!isDatabaseClosedError(error)) {
+      return Future.value(Result.Error(error));
+    }
+    return openDatabase(config).flatMapOk((database) =>
+      getStore(config, database, mode),
+    );
+  });
+
+const request = <A, E>(
+  config: Config,
+  mode: IDBTransactionMode,
+  callback: (store: IDBObjectStore) => Future<Result<A, E>>,
+) =>
+  openDatabase(config).flatMapOk((database) =>
+    retry(config.transactionRetries, () =>
+      getStoreWithReOpen(config, database, mode).flatMapOk(callback),
+    ).tap(() => database.close()),
+  );
+
+export const getStoreEntries = (
+  config: Config,
+): Future<Result<[string, unknown][], Error>> =>
+  request(config, "readonly", (store) =>
+    Future.all([
+      futurify(store.getAllKeys(), "getEntries", config.transactionTimeout),
+      futurify(store.getAll(), "getEntries", config.transactionTimeout),
+    ])
+      .map((results) => Result.all(results))
+      .mapOk(([keys = [], values = []]) =>
+        Array.zip(keys, values as unknown[]).filter(
+          (pair): pair is [string, unknown] => typeof pair[0] === "string",
         ),
+      ),
+  );
+
+export const setStoreEntries = (
+  config: Config,
+  entries: [string, unknown][],
+): Future<Result<IDBValidKey[], Error>> =>
+  request(config, "readwrite", (store) =>
+    Future.all(
+      entries.map(([key, value]) =>
+        futurify(store.put(value, key), "setMany", config.transactionTimeout),
+      ),
+    ).map((results) => Result.all(results)),
+  );
+
+export const clearStore = (config: Config): Future<Result<void, Error>> =>
+  request(config, "readwrite", (store) =>
+    futurify(store.clear(), "clear", config.transactionTimeout),
   );
