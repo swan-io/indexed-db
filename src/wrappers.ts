@@ -43,10 +43,11 @@ export const getFactory = (): Future<Result<IDBFactory, Error>> => {
       remainingAttempts = remainingAttempts - 1;
 
       if (remainingAttempts > 0) {
-        void indexedDB.databases().finally(() => {
+        const onResolve = () => {
           clearInterval(intervalId);
           resolve(Result.Ok(indexedDB));
-        });
+        };
+        void indexedDB.databases().then(onResolve, onResolve);
       } else {
         clearInterval(intervalId);
 
