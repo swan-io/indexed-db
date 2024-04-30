@@ -1,7 +1,6 @@
 import { Array, Future, Result } from "@swan-io/boxed";
 import { createError, isDatabaseClosedError } from "./errors";
 import { futurify } from "./futurify";
-import { retry } from "./helpers";
 
 type Config = {
   databaseName: string;
@@ -108,24 +107,27 @@ const getStoreWithReOpen = (
     );
   });
 
-const request = <A, E>(
-  config: Config,
-  mode: IDBTransactionMode,
-  callback: (store: IDBObjectStore) => Future<Result<A, E>>,
-) =>
+const request = (config: Config, mode: IDBTransactionMode) =>
   openDatabase(config).flatMapOk((database) =>
-    retry(config.transactionRetries, () =>
-      getStoreWithReOpen(config, database, mode).flatMapOk(callback),
-    ).tap(() => database.close()),
+    Future.retry(() => getStoreWithReOpen(config, database, mode), {
+      max: config.transactionRetries,
+    }).tap(() => database.close()),
   );
 
 export const getStoreEntries = (
   config: Config,
 ): Future<Result<[string, unknown][], Error>> =>
-  request(config, "readonly", (store) =>
+  request(config, "readonly").flatMapOk((store) =>
     Future.all([
-      futurify(store.getAllKeys(), "getEntries", config.transactionTimeout),
-      futurify(store.getAll(), "getEntries", config.transactionTimeout),
+      Future.retry(
+        () =>
+          futurify(store.getAllKeys(), "getEntries", config.transactionTimeout),
+        { max: config.transactionRetries },
+      ),
+      Future.retry(
+        () => futurify(store.getAll(), "getEntries", config.transactionTimeout),
+        { max: config.transactionRetries },
+      ),
     ])
       .map((results) => Result.all(results))
       .mapOk(([keys = [], values = []]) =>
@@ -139,15 +141,26 @@ export const setStoreEntries = (
   config: Config,
   entries: [string, unknown][],
 ): Future<Result<IDBValidKey[], Error>> =>
-  request(config, "readwrite", (store) =>
+  request(config, "readwrite").flatMapOk((store) =>
     Future.all(
       entries.map(([key, value]) =>
-        futurify(store.put(value, key), "setMany", config.transactionTimeout),
+        Future.retry(
+          () =>
+            futurify(
+              store.put(value, key),
+              "setMany",
+              config.transactionTimeout,
+            ),
+          { max: config.transactionRetries },
+        ),
       ),
     ).map((results) => Result.all(results)),
   );
 
 export const clearStore = (config: Config): Future<Result<void, Error>> =>
-  request(config, "readwrite", (store) =>
-    futurify(store.clear(), "clear", config.transactionTimeout),
+  request(config, "readwrite").flatMapOk((store) =>
+    Future.retry(
+      () => futurify(store.clear(), "clear", config.transactionTimeout),
+      { max: config.transactionRetries },
+    ),
   );

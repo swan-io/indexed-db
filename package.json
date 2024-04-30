@@ -59,7 +59,7 @@
     ]
   },
   "dependencies": {
-    "@swan-io/boxed": "^2.2.1"
+    "@swan-io/boxed": "^2.3.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.1.0",
